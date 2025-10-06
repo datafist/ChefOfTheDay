@@ -16,6 +16,14 @@ class KitaYearRepository extends ServiceEntityRepository
         parent::__construct($registry, KitaYear::class);
     }
 
+    /**
+     * Findet das aktive Kita-Jahr
+     */
+    public function findActiveYear(): ?KitaYear
+    {
+        return $this->findOneBy(['isActive' => true]);
+    }
+
     //    /**
     //     * @return KitaYear[] Returns an array of KitaYear objects
     //     */

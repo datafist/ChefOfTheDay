@@ -11,8 +11,10 @@ use App\Repository\KitaYearRepository;
 use App\Repository\LastYearCookingRepository;
 use App\Repository\VacationRepository;
 use App\Service\CookingPlanGenerator;
+use App\Service\DateExclusionService;
 use App\Service\NotificationService;
 use App\Service\PdfExportService;
+use App\Util\DateHelper;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -141,6 +143,43 @@ class DashboardController extends AbstractController
         return $this->redirectToRoute('admin_dashboard');
     }
 
+    #[Route('/delete-plan', name: 'admin_delete_plan', methods: ['POST'])]
+    public function deletePlan(
+        Request $request,
+        KitaYearRepository $kitaYearRepository,
+        CookingAssignmentRepository $assignmentRepository,
+        EntityManagerInterface $entityManager
+    ): Response {
+        // CSRF Token validieren
+        if (!$this->isCsrfTokenValid('delete-plan', $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
+        
+        if (!$activeKitaYear) {
+            $this->addFlash('error', 'Kein aktives Kita-Jahr gefunden.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        // Lösche alle Zuweisungen für das aktive Jahr
+        $assignments = $assignmentRepository->findBy(['kitaYear' => $activeKitaYear]);
+        $count = count($assignments);
+        
+        foreach ($assignments as $assignment) {
+            $entityManager->remove($assignment);
+        }
+        $entityManager->flush();
+
+        $this->addFlash('success', sprintf('✅ Kochplan für %s erfolgreich gelöscht! (%d Zuweisungen entfernt)', 
+            $activeKitaYear->getYearString(), 
+            $count
+        ));
+
+        return $this->redirectToRoute('admin_dashboard');
+    }
+
     #[Route('/send-notifications', name: 'admin_send_notifications', methods: ['POST'])]
     public function sendNotifications(
         Request $request,
@@ -204,8 +243,7 @@ class DashboardController extends AbstractController
     public function calendar(
         KitaYearRepository $kitaYearRepository,
         CookingAssignmentRepository $cookingAssignmentRepository,
-        HolidayRepository $holidayRepository,
-        VacationRepository $vacationRepository,
+        DateExclusionService $dateExclusionService,
         EntityManagerInterface $entityManager
     ): Response {
         $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
@@ -224,7 +262,7 @@ class DashboardController extends AbstractController
         $allParties = $entityManager->getRepository(Party::class)->findAll();
 
         // Ermittle ausgeschlossene Tage (Wochenenden, Feiertage, Ferien)
-        $excludedDates = $this->getExcludedDates($activeKitaYear, $holidayRepository, $vacationRepository);
+        $excludedDates = $dateExclusionService->getExcludedDatesForKitaYear($activeKitaYear);
 
         // Baue Kalender-Struktur auf
         $calendar = $this->buildCalendarView($activeKitaYear, $assignments, $excludedDates);
@@ -413,51 +451,6 @@ class DashboardController extends AbstractController
         return $this->redirectToRoute('admin_calendar');
     }
 
-    /**
-     * @return array<string, bool> date => true
-     */
-    private function getExcludedDates(
-        KitaYear $kitaYear,
-        HolidayRepository $holidayRepository,
-        VacationRepository $vacationRepository
-    ): array {
-        $excludedDates = [];
-        
-        // Feiertage
-        $holidays = $holidayRepository->findBy(['kitaYear' => $kitaYear]);
-        foreach ($holidays as $holiday) {
-            $excludedDates[$holiday->getDate()->format('Y-m-d')] = true;
-        }
-        
-        // Ferien
-        $vacations = $vacationRepository->findBy(['kitaYear' => $kitaYear]);
-        foreach ($vacations as $vacation) {
-            $period = new \DatePeriod(
-                $vacation->getStartDate(),
-                new \DateInterval('P1D'),
-                $vacation->getEndDate()->modify('+1 day')
-            );
-            foreach ($period as $date) {
-                $excludedDates[$date->format('Y-m-d')] = true;
-            }
-        }
-        
-        // Wochenenden
-        $period = new \DatePeriod(
-            $kitaYear->getStartDate(),
-            new \DateInterval('P1D'),
-            $kitaYear->getEndDate()->modify('+1 day')
-        );
-        foreach ($period as $date) {
-            $dayOfWeek = (int)$date->format('N');
-            if ($dayOfWeek === 6 || $dayOfWeek === 7) {
-                $excludedDates[$date->format('Y-m-d')] = true;
-            }
-        }
-        
-        return $excludedDates;
-    }
-
     private function buildCalendarView(KitaYear $kitaYear, array $assignments, array $excludedDates): array
     {
         $calendar = [];
@@ -480,7 +473,7 @@ class DashboardController extends AbstractController
             $monthData = [
                 'month' => (int)$monthStart->format('n'),
                 'year' => (int)$monthStart->format('Y'),
-                'name_de' => $this->getMonthNameGerman((int)$monthStart->format('n')),
+                'name_de' => DateHelper::getMonthNameGerman((int)$monthStart->format('n')),
                 'weeks' => []
             ];
 
@@ -527,16 +520,5 @@ class DashboardController extends AbstractController
         }
 
         return $calendar;
-    }
-
-    private function getMonthNameGerman(int $month): string
-    {
-        $names = [
-            1 => 'Januar', 2 => 'Februar', 3 => 'März', 4 => 'April',
-            5 => 'Mai', 6 => 'Juni', 7 => 'Juli', 8 => 'August',
-            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Dezember'
-        ];
-        
-        return $names[$month] ?? '';
     }
 }

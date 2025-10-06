@@ -4,135 +4,196 @@
     <meta charset="UTF-8">
     <style>
         @page {
-            margin: 2cm;
+            margin: 1.5cm 2cm;
         }
         body {
             font-family: DejaVu Sans, sans-serif;
-            font-size: 11pt;
-            line-height: 1.4;
-            color: #333;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #2c3e50;
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 3px solid #1976d2;
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: #2c3e50;
+            color: white;
+            border-radius: 8px;
+            border-bottom: 4px solid #667eea;
         }
         h1 {
-            color: #1976d2;
-            margin: 0 0 10px 0;
-            font-size: 24pt;
+            margin: 0 0 8px 0;
+            font-size: 28pt;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
         .subtitle {
-            color: #666;
-            font-size: 12pt;
+            font-size: 11pt;
+            opacity: 0.95;
+        }
+        .info-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+        }
+        .info-row {
+            display: table-row;
+        }
+        .info-label {
+            display: table-cell;
+            padding: 10px 15px;
+            font-weight: bold;
+            background-color: #495057;
+            color: white;
+            width: 30%;
+        }
+        .info-value {
+            display: table-cell;
+            padding: 10px 15px;
+            background-color: #ffffff;
         }
         .month-section {
             page-break-inside: avoid;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
         }
         .month-header {
-            background-color: #1976d2;
+            background-color: #2c3e50;
             color: white;
-            padding: 8px 12px;
+            padding: 12px 15px;
             font-size: 14pt;
             font-weight: bold;
-            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+            border-bottom: 3px solid #667eea;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
         }
         th {
-            background-color: #e3f2fd;
-            padding: 8px;
+            background-color: #f1f3f5;
+            padding: 10px 8px;
             text-align: left;
             font-weight: bold;
-            border: 1px solid #90caf9;
+            font-size: 9pt;
+            color: #495057;
+            border-bottom: 2px solid #667eea;
         }
         td {
-            padding: 8px;
-            border: 1px solid #ddd;
+            padding: 10px 8px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 9pt;
         }
-        tr:nth-child(even) {
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
             background-color: #f8f9fa;
         }
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            text-align: center;
-            font-size: 9pt;
-            color: #999;
-            padding-top: 10px;
-            border-top: 1px solid #ddd;
+        .date-col {
+            font-weight: bold;
+            color: #667eea;
         }
-        .summary-box {
-            background-color: #e8f5e9;
-            padding: 15px;
-            border-left: 4px solid #27ae60;
-            margin-bottom: 20px;
+        .child-col {
+            font-weight: 600;
+            color: #2c3e50;
         }
-        .manual-tag {
+        .parent-col {
+            color: #6c757d;
+            font-size: 8.5pt;
+        }
+        .type-auto {
+            color: #28a745;
+            font-size: 8pt;
+        }
+        .type-manual {
             background-color: #fff3cd;
             color: #856404;
             padding: 2px 6px;
             border-radius: 3px;
-            font-size: 9pt;
+            font-size: 8pt;
+            font-weight: 600;
+        }
+        .footer {
+            position: fixed;
+            bottom: 1cm;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 8pt;
+            color: #adb5bd;
+            padding-top: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        .page-number:after {
+            content: counter(page);
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>🍳 Kochplan</h1>
+        <h1>🍳 Kochplan {{ kitaYear.yearString }}</h1>
         <div class="subtitle">
-            Kita-Jahr {{ kitaYear.yearString }}<br>
-            {{ kitaYear.startDate|date('d.m.Y') }} - {{ kitaYear.endDate|date('d.m.Y') }}
+            Kita-Jahr: {{ kitaYear.startDate|date('d.m.Y') }} bis {{ kitaYear.endDate|date('d.m.Y') }}
         </div>
     </div>
 
-    <div class="summary-box">
-        <strong>Zusammenfassung:</strong><br>
-        Insgesamt {{ totalAssignments }} Kochdienste für das Kita-Jahr {{ kitaYear.yearString }}
+    <div class="info-grid">
+        <div class="info-row">
+            <div class="info-label">📅 Zeitraum</div>
+            <div class="info-value">{{ kitaYear.startDate|date('d. F Y') }} - {{ kitaYear.endDate|date('d. F Y') }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">📊 Kochdienste gesamt</div>
+            <div class="info-value">{{ totalAssignments }} Termine</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">📄 Erstellt am</div>
+            <div class="info-value">{{ "now"|date('d.m.Y um H:i') }} Uhr</div>
+        </div>
     </div>
 
     {% for month in assignmentsByMonth %}
     <div class="month-section">
-        <div class="month-header">{{ month.name }}</div>
+        <div class="month-header">📆 {{ month.name }}</div>
         
         <table>
             <thead>
                 <tr>
-                    <th style="width: 20%;">Datum</th>
-                    <th style="width: 15%;">Wochentag</th>
-                    <th style="width: 20%;">Kind</th>
-                    <th style="width: 35%;">Eltern</th>
-                    <th style="width: 10%;">Typ</th>
+                    <th style="width: 15%;">Datum</th>
+                    <th style="width: 13%;">Tag</th>
+                    <th style="width: 25%;">Familie (Kind)</th>
+                    <th style="width: 37%;">Erziehungsberechtigte</th>
+                    <th style="width: 10%; text-align: center;">Typ</th>
                 </tr>
             </thead>
             <tbody>
                 {% for assignment in month.assignments %}
                 <tr>
-                    <td>{{ assignment.assignedDate|date('d.m.Y') }}</td>
+                    <td class="date-col">{{ assignment.assignedDate|date('d.m.Y') }}</td>
                     <td>
                         {% set day = assignment.assignedDate|date('l') %}
-                        {% if day == 'Monday' %}Montag
-                        {% elseif day == 'Tuesday' %}Dienstag
-                        {% elseif day == 'Wednesday' %}Mittwoch
-                        {% elseif day == 'Thursday' %}Donnerstag
-                        {% elseif day == 'Friday' %}Freitag
-                        {% elseif day == 'Saturday' %}Samstag
-                        {% elseif day == 'Sunday' %}Sonntag
+                        {% if day == 'Monday' %}Mo
+                        {% elseif day == 'Tuesday' %}Di
+                        {% elseif day == 'Wednesday' %}Mi
+                        {% elseif day == 'Thursday' %}Do
+                        {% elseif day == 'Friday' %}Fr
+                        {% elseif day == 'Saturday' %}Sa
+                        {% elseif day == 'Sunday' %}So
                         {% endif %}
                     </td>
-                    <td>{{ assignment.party.childrenNames }}</td>
-                    <td>{{ assignment.party.parentNames|join(', ') }}</td>
-                    <td>
+                    <td class="child-col">{{ assignment.party.childrenNames }}</td>
+                    <td class="parent-col">{{ assignment.party.parentNames|join(', ') }}</td>
+                    <td style="text-align: center;">
                         {% if assignment.isManuallyAssigned %}
-                            <span class="manual-tag">Manuell</span>
+                            <span class="type-manual">✏️ M</span>
                         {% else %}
-                            Auto
+                            <span class="type-auto">✓</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -143,7 +204,7 @@
     {% endfor %}
 
     <div class="footer">
-        Erstellt am {{ "now"|date('d.m.Y H:i') }} Uhr | Kochdienst-Verwaltungssystem
+        Seite <span class="page-number"></span> | Kochdienst-Plan {{ kitaYear.yearString }} | Erstellt: {{ "now"|date('d.m.Y, H:i') }} Uhr
     </div>
 </body>
 </html>

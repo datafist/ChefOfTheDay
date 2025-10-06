@@ -54,6 +54,13 @@
             </form>
             
             {% if assignments|length > 0 %}
+                <form method="post" action="{{ path('admin_delete_plan') }}" style="display: inline;" onsubmit="return confirm('⚠️ ACHTUNG: Möchten Sie wirklich den kompletten Kochplan für {{ activeKitaYear.yearString }} löschen? Alle {{ totalAssignments }} Zuweisungen gehen verloren!');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('delete-plan') }}">
+                    <button type="submit" class="btn btn-danger" style="background-color: #dc3545;">
+                        🗑️ Plan löschen
+                    </button>
+                </form>
+            
                 <form method="post" action="{{ path('admin_send_notifications') }}" style="display: inline;" onsubmit="return confirm('Möchten Sie wirklich E-Mail-Benachrichtigungen an alle Familien versenden?');">
                     <input type="hidden" name="_token" value="{{ csrf_token('send-notifications') }}">
                     <button type="submit" class="btn btn-success">
@@ -62,10 +69,10 @@
                 </form>
                 
                 <a href="{{ path('admin_calendar') }}" class="btn">
-                    Kalender
+                    📅 Kalender
                 </a>
-                <a href="{{ path('admin_export_pdf') }}" class="btn btn-danger">
-                    PDF exportieren
+                <a href="{{ path('admin_export_pdf') }}" class="btn" style="background-color: #6c757d; color: white;">
+                    📄 PDF exportieren
                 </a>
             {% endif %}
         </div>

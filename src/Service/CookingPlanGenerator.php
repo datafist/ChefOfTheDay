@@ -26,9 +26,8 @@ class CookingPlanGenerator
         private readonly EntityManagerInterface $entityManager,
         private readonly PartyRepository $partyRepository,
         private readonly AvailabilityRepository $availabilityRepository,
-        private readonly HolidayRepository $holidayRepository,
-        private readonly VacationRepository $vacationRepository,
         private readonly LastYearCookingRepository $lastYearCookingRepository,
+        private readonly DateExclusionService $dateExclusionService,
     ) {
     }
 
@@ -48,8 +47,8 @@ class CookingPlanGenerator
         // Lade alle Verfügbarkeiten
         $availabilities = $this->loadAvailabilities($kitaYear, $parties);
         
-        // Lade Feiertage und Ferien
-        $excludedDates = $this->getExcludedDates($kitaYear);
+        // Lade ausgeschlossene Tage (Wochenenden, Feiertage, Ferien)
+        $excludedDates = $this->dateExclusionService->getExcludedDatesForKitaYear($kitaYear);
         
         // Lade letztjährige Kochdienste für jahresübergreifende Fairness
         $lastYearCookings = $this->loadLastYearCookings($parties);
@@ -92,48 +91,6 @@ class CookingPlanGenerator
             }
         }
         return $availabilities;
-    }
-
-    /**
-     * @return array<string, bool> date => true
-     */
-    private function getExcludedDates(KitaYear $kitaYear): array
-    {
-        $excludedDates = [];
-        
-        // Feiertage
-        $holidays = $this->holidayRepository->findBy(['kitaYear' => $kitaYear]);
-        foreach ($holidays as $holiday) {
-            $excludedDates[$holiday->getDate()->format('Y-m-d')] = true;
-        }
-        
-        // Ferien
-        $vacations = $this->vacationRepository->findBy(['kitaYear' => $kitaYear]);
-        foreach ($vacations as $vacation) {
-            $period = new \DatePeriod(
-                $vacation->getStartDate(),
-                new \DateInterval('P1D'),
-                $vacation->getEndDate()->modify('+1 day')
-            );
-            foreach ($period as $date) {
-                $excludedDates[$date->format('Y-m-d')] = true;
-            }
-        }
-        
-        // Wochenenden
-        $period = new \DatePeriod(
-            $kitaYear->getStartDate(),
-            new \DateInterval('P1D'),
-            $kitaYear->getEndDate()->modify('+1 day')
-        );
-        foreach ($period as $date) {
-            $dayOfWeek = (int)$date->format('N');
-            if ($dayOfWeek === 6 || $dayOfWeek === 7) {
-                $excludedDates[$date->format('Y-m-d')] = true;
-            }
-        }
-        
-        return $excludedDates;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\KitaYear;
 use App\Repository\CookingAssignmentRepository;
+use App\Util\DateHelper;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Twig\Environment;
@@ -27,7 +28,7 @@ class PdfExportService
         $assignmentsByMonth = [];
         foreach ($assignments as $assignment) {
             $month = $assignment->getAssignedDate()->format('Y-m');
-            $monthName = $this->getMonthNameGerman($assignment->getAssignedDate()->format('n')) 
+            $monthName = DateHelper::getMonthNameGerman((int)$assignment->getAssignedDate()->format('n')) 
                        . ' ' . $assignment->getAssignedDate()->format('Y');
             
             if (!isset($assignmentsByMonth[$month])) {
@@ -59,16 +60,6 @@ class PdfExportService
         $dompdf->render();
 
         return $dompdf->output();
-    }
-
-    private function getMonthNameGerman(string $monthNumber): string
-    {
-        $months = [
-            '1' => 'Januar', '2' => 'Februar', '3' => 'März', '4' => 'April',
-            '5' => 'Mai', '6' => 'Juni', '7' => 'Juli', '8' => 'August',
-            '9' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Dezember',
-        ];
-        return $months[$monthNumber] ?? '';
     }
 
     private function getDayNameGerman(string $englishDay): string
