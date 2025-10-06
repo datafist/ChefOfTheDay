@@ -22,7 +22,8 @@ class AppFixtures extends Fixture
     {
         // Admin User erstellen
         $admin = new User();
-        $admin->setEmail('admin@kita.local');
+        $admin->setUsername('admin');
+        $admin->setEmail('admin@kita.local'); // Optional für E-Mail-Benachrichtigungen
         $admin->setRoles(['ROLE_ADMIN']);
         $admin->setPassword($this->passwordHasher->hashPassword($admin, 'admin123'));
         $manager->persist($admin);

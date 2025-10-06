@@ -19,7 +19,7 @@ class KitaYearDeletionProtectionTest extends WebTestCase
         // Als Admin anmelden
         $client->loginUser(
             $client->getContainer()->get('doctrine')->getRepository(\App\Entity\User::class)
-                ->findOneBy(['email' => 'admin@kita.local'])
+                ->findOneBy(['username' => 'admin'])
         );
         
         // Neues Test-Jahr erstellen
@@ -66,7 +66,7 @@ class KitaYearDeletionProtectionTest extends WebTestCase
         
         // Als Admin anmelden
         $client->loginUser(
-            $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'admin@kita.local'])
+            $em->getRepository(\App\Entity\User::class)->findOneBy(['username' => 'admin'])
         );
         
         // Finde aktives Jahr um zukünftiges Jahr zu erstellen
@@ -129,7 +129,7 @@ class KitaYearDeletionProtectionTest extends WebTestCase
         
         // Als Admin anmelden
         $client->loginUser(
-            $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'admin@kita.local'])
+            $em->getRepository(\App\Entity\User::class)->findOneBy(['username' => 'admin'])
         );
         
         // Aktives Jahr holen
@@ -205,7 +205,7 @@ class KitaYearDeletionProtectionTest extends WebTestCase
         
         // Als Admin anmelden
         $client->loginUser(
-            $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'admin@kita.local'])
+            $em->getRepository(\App\Entity\User::class)->findOneBy(['username' => 'admin'])
         );
         
         // Test-Jahr mit Verfügbarkeit erstellen
@@ -267,7 +267,7 @@ class KitaYearDeletionProtectionTest extends WebTestCase
         
         // Als Admin anmelden
         $client->loginUser(
-            $em->getRepository(\App\Entity\User::class)->findOneBy(['email' => 'admin@kita.local'])
+            $em->getRepository(\App\Entity\User::class)->findOneBy(['username' => 'admin'])
         );
         
         // Finde aktives Jahr

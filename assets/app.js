@@ -7,4 +7,14 @@ import './bootstrap.js';
  */
 import './styles/app.css';
 
-console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
+// Alert close button functionality
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.alert .btn-close').forEach(button => {
+        button.addEventListener('click', function() {
+            const alert = this.closest('.alert');
+            alert.style.opacity = '0';
+            alert.style.transition = 'opacity 0.3s';
+            setTimeout(() => alert.remove(), 300);
+        });
+    });
+});

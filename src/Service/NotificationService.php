@@ -8,12 +8,17 @@ use App\Repository\CookingAssignmentRepository;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Address;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 class NotificationService
 {
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly CookingAssignmentRepository $assignmentRepository,
+        #[Autowire('%mailer.from_email%')]
+        private readonly string $fromEmail = 'noreply@example.com',
+        #[Autowire('%mailer.from_name%')]
+        private readonly string $fromName = 'Kita Kochdienst',
     ) {
     }
 
@@ -46,7 +51,7 @@ class NotificationService
             $partyAssignments = array_filter($assignments, fn($a) => $a->getParty()->getId() === $partyId);
 
             $email = (new TemplatedEmail())
-                ->from(new Address('kochdienst@kita.local', 'Kita Kochdienst'))
+                ->from(new Address($this->fromEmail, $this->fromName))
                 ->to(new Address($party->getEmail()))
                 ->subject('Ihr Kochplan für ' . $kitaYear->getYearString())
                 ->htmlTemplate('emails/plan_generated.html.twig')
@@ -92,7 +97,7 @@ class NotificationService
             }
 
             $email = (new TemplatedEmail())
-                ->from(new Address('kochdienst@kita.local', 'Kita Kochdienst'))
+                ->from(new Address($this->fromEmail, $this->fromName))
                 ->to(new Address($party->getEmail()))
                 ->subject('Erinnerung: Kochdienst am ' . $assignment->getAssignedDate()->format('d.m.Y'))
                 ->htmlTemplate('emails/reminder.html.twig')

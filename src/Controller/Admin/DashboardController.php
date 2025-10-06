@@ -107,8 +107,7 @@ class DashboardController extends AbstractController
         KitaYearRepository $kitaYearRepository,
         CookingPlanGenerator $generator,
         EntityManagerInterface $entityManager,
-        CookingAssignmentRepository $assignmentRepository,
-        NotificationService $notificationService
+        CookingAssignmentRepository $assignmentRepository
     ): Response {
         $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
         
@@ -188,6 +187,12 @@ class DashboardController extends AbstractController
         CookingAssignmentRepository $assignmentRepository,
         NotificationService $notificationService
     ): Response {
+        // CSRF Token validieren
+        if (!$this->isCsrfTokenValid('send-notifications', $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
         $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
         
         if (!$activeKitaYear) {

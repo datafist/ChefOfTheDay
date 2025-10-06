@@ -1,3 +1,10 @@
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+
+parameters:
+    # Absender-E-Mail für alle ausgehenden E-Mails
+    # WICHTIG: Muss mit dem SMTP-Account übereinstimmen!
+    # Bei GMX/Gmail: Muss Ihre Login-Adresse sein
+    mailer.from_email: 'kopfnicker@gmx.net'
+    mailer.from_name: 'Kita Kochdienst'

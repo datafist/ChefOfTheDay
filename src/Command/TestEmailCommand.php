@@ -8,17 +8,25 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mailer\Transport;
+use Symfony\Component\Mailer\Mailer;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Email;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 #[AsCommand(
     name: 'app:test-email',
-    description: 'Testet den E-Mail-Versand mit den konfigurierten SMTP-Einstellungen',
+    description: 'Testet den E-Mail-Versand mit den konfigurierten SMTP-Einstellungen (SYNCHRON)',
 )]
 class TestEmailCommand extends Command
 {
     public function __construct(
-        private readonly MailerInterface $mailer
+        #[Autowire('%env(MAILER_DSN)%')]
+        private readonly string $mailerDsn,
+        #[Autowire('%mailer.from_email%')]
+        private readonly string $fromEmail,
+        #[Autowire('%mailer.from_name%')]
+        private readonly string $fromName,
     ) {
         parent::__construct();
     }
@@ -38,42 +46,57 @@ class TestEmailCommand extends Command
         $io = new SymfonyStyle($input, $output);
         $recipient = $input->getArgument('recipient');
 
-        $io->title('E-Mail-Versand Test');
+        $io->title('E-Mail-Versand Test (SYNCHRON)');
         $io->text('Sende Test-E-Mail an: ' . $recipient);
+        $io->text('MAILER_DSN: ' . preg_replace('/:[^:]+@/', ':***@', $this->mailerDsn)); // Passwort verstecken
 
         try {
+            // Erstelle synchronen Mailer (umgeht Messenger Queue)
+            $transport = Transport::fromDsn($this->mailerDsn);
+            $mailer = new Mailer($transport);
+            
+            // Verwende die zentral konfigurierte Absender-Adresse
             $email = (new Email())
-                ->from('kita@example.com')
+                ->from($this->fromEmail)
                 ->to($recipient)
                 ->subject('🧪 Test-E-Mail von Kita Kochdienst-App')
                 ->html($this->getTestEmailHtml());
 
-            $this->mailer->send($email);
+            // Synchroner Versand - wirft Exception bei Fehler
+            $mailer->send($email);
 
             $io->success('✅ E-Mail erfolgreich versendet!');
             $io->text([
                 'Prüfen Sie Ihr E-Mail-Postfach (auch Spam-Ordner).',
+                'Bei GMX: Kann bis zu 10 Minuten dauern!',
+                '',
                 'Falls keine E-Mail ankommt, prüfen Sie:',
                 '  • MAILER_DSN in .env.local',
                 '  • SMTP-Credentials beim Provider',
+                '  • GMX: POP3/SMTP-Zugriff aktiviert?',
                 '  • Firewall-Einstellungen (Ports 25, 465, 587)',
-                '  • Logs: var/log/dev.log',
             ]);
 
             return Command::SUCCESS;
-        } catch (\Exception $e) {
+        } catch (TransportExceptionInterface $e) {
             $io->error('❌ E-Mail-Versand fehlgeschlagen!');
-            $io->text('Fehler: ' . $e->getMessage());
+            $io->text('Transport-Fehler: ' . $e->getMessage());
             $io->text([
                 '',
                 'Mögliche Ursachen:',
-                '  • MAILER_DSN nicht konfiguriert (aktuell: null://null)',
-                '  • Falsche SMTP-Credentials',
+                '  • Falsche SMTP-Credentials (Passwort falsch?)',
                 '  • SMTP-Server nicht erreichbar',
+                '  • GMX: POP3/SMTP-Zugriff nicht aktiviert',
                 '  • Port blockiert durch Firewall',
+                '  • IP temporär gesperrt (15 Min warten)',
                 '',
-                'Siehe SMTP_CONFIGURATION.md für Hilfe',
+                'Siehe GMX_SMTP_CONFIG.md für Hilfe',
             ]);
+
+            return Command::FAILURE;
+        } catch (\Exception $e) {
+            $io->error('❌ Allgemeiner Fehler!');
+            $io->text('Fehler: ' . $e->getMessage());
 
             return Command::FAILURE;
         }

@@ -331,6 +331,35 @@ nav a.active {
     border: var(--border-width) solid transparent;
     border-radius: var(--border-radius);
     background-color: var(--color-gray-100);
+    position: relative;
+}
+
+.alert.alert-dismissible {
+    padding-right: 3rem;
+}
+
+.alert .btn-close {
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.alert .btn-close:hover {
+    opacity: 1;
+}
+
+.alert .btn-close::before {
+    content: '×';
 }
 
 .alert-success {
@@ -339,7 +368,8 @@ nav a.active {
     color: var(--color-success-dark);
 }
 
-.alert-error {
+.alert-error,
+.alert-danger {
     background-color: #FCE8E6;
     border-color: var(--color-danger);
     color: var(--color-danger-dark);

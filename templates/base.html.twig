@@ -28,6 +28,8 @@
                     <a href="{{ path('admin_kita_year_index') }}">Kita-Jahre</a>
                     <a href="{{ path('admin_holiday_index') }}">Feiertage</a>
                     <a href="{{ path('admin_vacation_index') }}">Ferien</a>
+                    <a href="{{ path('admin_email_test') }}">E-Mail-Test</a>
+                    <a href="{{ path('admin_change_password') }}">Passwort ändern</a>
                     <a href="{{ path('app_logout') }}">Abmelden</a>
                 {% else %}
                     <a href="{{ path('parent_availability') }}">Verfügbare Tage</a>
@@ -43,8 +45,9 @@
         {# Flash Messages #}
         {% for type, messages in app.flashes %}
             {% for message in messages %}
-                <div class="alert alert-{{ type }}">
-                    {{ message }}
+                <div class="alert alert-{{ type }} alert-dismissible fade show mt-3" role="alert">
+                    {{ message|raw }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             {% endfor %}
         {% endfor %}

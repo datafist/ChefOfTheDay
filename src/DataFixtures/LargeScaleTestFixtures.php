@@ -29,10 +29,11 @@ class LargeScaleTestFixtures extends Fixture implements FixtureGroupInterface
         echo "\n=== Erstelle umfangreiche Test-Daten (45 Familien) ===\n\n";
 
         // Admin User (nur erstellen, wenn noch nicht vorhanden)
-        $existingAdmin = $manager->getRepository(User::class)->findOneBy(['email' => 'admin@kita.local']);
+        $existingAdmin = $manager->getRepository(User::class)->findOneBy(['username' => 'admin']);
         if (!$existingAdmin) {
             $admin = new User();
-            $admin->setEmail('admin@kita.local');
+            $admin->setUsername('admin');
+            $admin->setEmail('admin@kita.local'); // Optional für E-Mails
             $admin->setRoles(['ROLE_ADMIN']);
             $admin->setPassword($this->passwordHasher->hashPassword($admin, 'admin123'));
             $manager->persist($admin);
@@ -247,7 +248,7 @@ class LargeScaleTestFixtures extends Fixture implements FixtureGroupInterface
         
         echo "🎯 TEST-SZENARIO:\n";
         echo "   1. In Browser öffnen: http://localhost:8000\n";
-        echo "   2. Als Admin einloggen (admin@kita.local / admin123)\n";
+        echo "   2. Als Admin einloggen (admin / admin123)\n";
         echo "   3. Kochplan für 25/26 generieren\n";
         echo "   4. Prüfen:\n";
         echo "      ✓ Werden Altdaten (LastYearCooking) von bestehenden Familien berücksichtigt?\n";

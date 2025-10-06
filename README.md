@@ -1,6 +1,45 @@
 # Kochdienst-Verwaltungs-App für Kita
 
-Eine Symfony 6.4 LTS Webanwendung zur gerechten Verteilung von Kochdiensten in einer Kindertagesstätte.
+Eine Symfony 6.4 LTS Webanwendung zur gerecht   ```
+
+## 📧 Email-System
+
+### SMTP-Konfiguration
+
+Konfigurieren Sie Ihre echten SMTP-Zugangsdaten in `.env.local`:
+
+```bash
+# Gmail (App-Passwort erforderlich!)
+MAILER_DSN=gmail+smtp://ihre-email@gmail.com:app-passwort@default
+
+# GMX
+MAILER_DSN=smtp://ihre-email@gmx.de:passwort@mail.gmx.net:587?encryption=tls
+
+# Kasserver
+MAILER_DSN=smtp://ihre-email@ihre-domain.de:passwort@mail.kasserver.com:465?encryption=ssl
+
+# Eigener SMTP-Server
+MAILER_DSN=smtp://benutzer:passwort@mail.ihre-domain.de:587?encryption=tls
+
+# Entwicklung ohne Versand
+MAILER_DSN=null://null
+```
+
+### E-Mail-Test
+
+Testen Sie Ihre Konfiguration **ohne echte Benachrichtigungen zu versenden**:
+
+1. **Im Admin-Interface:** Navigation → **E-Mail-Test**
+   - Geben Sie Ihre Test-E-Mail-Adresse ein
+   - Klicken Sie auf "Test-E-Mail senden"
+   - Prüfen Sie Ihr Postfach (auch Spam-Ordner)
+
+2. **Via CLI:**
+   ```bash
+   php bin/console app:test-email ihre-email@example.com
+   ```
+
+### Email-Featuresg von Kochdiensten in einer Kindertagesstätte.
 
 ## 🎯 Features
 
@@ -81,7 +120,10 @@ Eine Symfony 6.4 LTS Webanwendung zur gerechten Verteilung von Kochdiensten in e
 
 8. **Öffne im Browser**
    ```
-   http://localhost:8000
+      http://localhost:8000
+   ```
+
+## 📚 Datenmodell
    ```
 
 ## � Email-System
@@ -210,11 +252,10 @@ templates/
   - Automatische Markierung von Feiertagen, Ferien, Wochenenden
   - Persistierung der Auswahl
 
-- [x] **E-Mail-Benachrichtigungen**: Automatisches Benachrichtigungssystem
-  - Email beim Generieren des Kochplans
-  - Erinnerungen X Tage vor dem Kochdienst
-  - Console-Command: `php bin/console app:send-reminders [days]`
-  - Test mit Mailpit (http://localhost:56257)
+- [x] **E-Mail-Benachrichtigungen**: Manuelles Benachrichtigungssystem
+  - Email-Versand über Button "📧 E-Mails versenden" im Admin-Dashboard
+  - Test-E-Mail-Funktion (Admin → E-Mail-Test)
+  - Kein automatischer Versand beim Generieren (bewusste Kontrolle)
 
 - [x] **PDF-Export**: Professioneller Kochplan-Export
   - Übersichtliche Monatsansicht
