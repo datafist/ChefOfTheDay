@@ -29,7 +29,7 @@ class Vacation
     private ?string $name = null;
 
     #[ORM\ManyToOne(inversedBy: 'vacations')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?KitaYear $kitaYear = null;
 
     public function getId(): ?int

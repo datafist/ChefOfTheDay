@@ -18,11 +18,11 @@ class CookingAssignment
     private ?int $id = null;
 
     #[ORM\ManyToOne(inversedBy: 'cookingAssignments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?Party $party = null;
 
     #[ORM\ManyToOne(inversedBy: 'cookingAssignments')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?KitaYear $kitaYear = null;
 
     #[ORM\Column(type: Types::DATE_IMMUTABLE)]

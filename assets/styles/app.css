@@ -1029,6 +1029,20 @@ input[type="checkbox"].checkbox-success {
     accent-color: var(--color-success);
 }
 
+/* Admin Calendar - Excluded Days */
+.calendar-excluded-icon {
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+.calendar-excluded-reason {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    text-align: center;
+    line-height: 1.2;
+}
+
 .modal {
     display: none;
     position: fixed;

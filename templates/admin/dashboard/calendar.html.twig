@@ -78,8 +78,11 @@
                                                     ➕ Familie zuweisen
                                                 </button>
                                             {% elseif day.isCurrentMonth and day.isExcluded %}
-                                                <div class="calendar-excluded-icon" title="Wochenende, Feiertag oder Ferienzeit">
-                                                    🚫
+                                                <div class="calendar-day-excluded">
+                                                    <div class="calendar-excluded-icon">🚫</div>
+                                                    <div class="calendar-excluded-reason" title="{{ day.excludeReason }}">
+                                                        {{ day.excludeReason|length > 15 ? day.excludeReason|slice(0, 15) ~ '...' : day.excludeReason }}
+                                                    </div>
                                                 </div>
                                             {% endif %}
                                         {% endif %}

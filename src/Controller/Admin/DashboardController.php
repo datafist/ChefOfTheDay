@@ -491,12 +491,20 @@ class DashboardController extends AbstractController
                 $dateKey = $currentDate->format('Y-m-d');
                 $dayOfWeek = (int)$currentDate->format('N');
                 
+                // Ermittle Ausschluss-Grund falls vorhanden
+                $excludeReason = null;
+                $isExcluded = isset($excludedDates[$dateKey]);
+                if ($isExcluded) {
+                    $excludeReason = $excludedDates[$dateKey];
+                }
+                
                 $dayData = [
                     'date' => $currentDate->format('Y-m-d'),
                     'day' => (int)$currentDate->format('j'),
                     'isCurrentMonth' => $currentDate->format('m') === $monthStart->format('m'),
                     'assignment' => $assignmentsByDate[$dateKey] ?? null,
-                    'isExcluded' => isset($excludedDates[$dateKey]),
+                    'isExcluded' => $isExcluded,
+                    'excludeReason' => $excludeReason,
                 ];
                 
                 $week[] = $dayData;
