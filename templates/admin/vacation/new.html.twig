@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ferienzeit anlegen - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Neue Ferienzeit anlegen</h2>
+    
+    <p style="color: #666; margin-bottom: 1.5rem;">
+        Für Kita-Jahr: <strong>{{ active_year.yearString }}</strong>
+    </p>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="name">Bezeichnung:</label>
+            <input type="text" name="name" id="name" required placeholder="z.B. Sommerferien">
+        </div>
+
+        <div class="form-group">
+            <label for="start_date">Start-Datum:</label>
+            <input type="date" name="start_date" id="start_date" required 
+                   min="{{ active_year.startDate|date('Y-m-d') }}" 
+                   max="{{ active_year.endDate|date('Y-m-d') }}">
+        </div>
+
+        <div class="form-group">
+            <label for="end_date">End-Datum:</label>
+            <input type="date" name="end_date" id="end_date" required 
+                   min="{{ active_year.startDate|date('Y-m-d') }}" 
+                   max="{{ active_year.endDate|date('Y-m-d') }}">
+            <small style="color: #666;">Beide Daten müssen innerhalb des Kita-Jahres liegen</small>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-success">Ferienzeit anlegen</button>
+            <a href="{{ path('admin_vacation_index') }}" class="btn">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

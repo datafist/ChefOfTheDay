@@ -1,0 +1,60 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Ferienzeiten - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Ferienzeiten</h2>
+        <a href="{{ path('admin_vacation_new') }}" class="btn btn-success">+ Neue Ferienzeit</a>
+    </div>
+
+    {% if active_year %}
+        <div style="background-color: #e8f5e9; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+            <strong>Aktives Kita-Jahr:</strong> {{ active_year.yearString }}
+        </div>
+
+        {% if vacations|length > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Bezeichnung</th>
+                        <th>Von</th>
+                        <th>Bis</th>
+                        <th>Dauer</th>
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vacation in vacations %}
+                    <tr>
+                        <td><strong>{{ vacation.name }}</strong></td>
+                        <td>{{ vacation.startDate|date('d.m.Y') }}</td>
+                        <td>{{ vacation.endDate|date('d.m.Y') }}</td>
+                        <td>{{ vacation.startDate.diff(vacation.endDate).days + 1 }} Tage</td>
+                        <td>
+                            <form method="post" action="{{ path('admin_vacation_delete', {id: vacation.id}) }}" onsubmit="return confirm('Wirklich löschen?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ vacation.id) }}">
+                                <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Löschen</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p style="text-align: center; color: #666; padding: 2rem;">Noch keine Ferienzeiten für dieses Kita-Jahr vorhanden.</p>
+        {% endif %}
+    {% else %}
+        <div style="text-align: center; padding: 2rem; background-color: #fff3cd; border-radius: 4px;">
+            <p style="margin: 0; color: #856404;">
+                ℹ️ Bitte aktivieren Sie zuerst ein <a href="{{ path('admin_kita_year_index') }}">Kita-Jahr</a>.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+    <a href="{{ path('admin_dashboard') }}" class="btn">← Zurück zum Dashboard</a>
+</div>
+{% endblock %}

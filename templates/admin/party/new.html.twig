@@ -1,0 +1,214 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Familie anlegen - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Neue Familie anlegen</h2>
+    
+    <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+        <strong>ℹ️ Hinweis:</strong> Das Login-Passwort wird automatisch generiert: 
+        Erster Buchstabe des <strong>ältesten</strong> Kindes + Geburtsjahr (z.B. "M2019")
+    </div>
+    
+    {{ form_start(form) }}
+        <div class="form-group">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Kinder (1-3)
+                <span style="color: #dc3545;">*</span>
+            </label>
+            
+            <div id="children-collection" data-prototype="{{ form_widget(form.children.vars.prototype)|e('html_attr') }}" data-index="{{ form.children|length }}">
+                {% for child in form.children %}
+                    <div class="child-item" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border: 1px solid #dee2e6;">
+                        <div style="display: flex; gap: 1rem; align-items: start;">
+                            <div style="flex: 1;">
+                                {{ form_widget(child.name, {'attr': {'style': 'margin-bottom: 0.5rem;'}}) }}
+                                {{ form_errors(child.name) }}
+                            </div>
+                            <div style="flex: 1;">
+                                {{ form_widget(child.birthYear, {'attr': {'style': 'margin-bottom: 0.5rem;'}}) }}
+                                {{ form_errors(child.birthYear) }}
+                            </div>
+                            <button type="button" class="btn btn-danger remove-child" style="padding: 0.5rem 1rem; white-space: nowrap;">
+                                ✗ Entfernen
+                            </button>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" id="add-child" class="btn btn-outline" style="margin-top: 0.5rem;">
+                + Kind hinzufügen
+            </button>
+            {{ form_errors(form.children) }}
+            <small style="color: #666; display: block; margin-top: 0.5rem;">
+                Familien können 1-3 Kinder haben. Das <strong>älteste</strong> Kind bestimmt das Login-Passwort.
+            </small>
+        </div>
+
+        <div class="form-group">
+            {{ form_label(form.email) }}
+            {{ form_widget(form.email) }}
+            {{ form_errors(form.email) }}
+            <small style="color: #666;">Optional: Für Benachrichtigungen und Kommunikation</small>
+        </div>
+
+        <div class="form-group">
+            <label style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+                Elternteile (1-2)
+                <span style="color: #dc3545;">*</span>
+            </label>
+            
+            <div id="parent-names-collection" data-prototype="{{ form_widget(form.parentNames.vars.prototype)|e('html_attr') }}" data-index="{{ form.parentNames|length }}">
+                {% for parentName in form.parentNames %}
+                    <div class="parent-name-item" style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        {{ form_widget(parentName) }}
+                        <button type="button" class="btn btn-danger remove-parent" style="padding: 0.5rem 1rem; white-space: nowrap;">
+                            ✗ Entfernen
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" id="add-parent" class="btn btn-outline" style="margin-top: 0.5rem;">
+                + Elternteil hinzufügen
+            </button>
+            {{ form_errors(form.parentNames) }}
+            <small style="color: #666; display: block; margin-top: 0.5rem;">
+                Alleinerziehende: Nur 1 Person angeben (automatisch reduzierte Kochdienst-Häufigkeit)
+            </small>
+        </div>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #dee2e6;">
+            <button type="submit" class="btn btn-success">💾 Familie anlegen</button>
+            <a href="{{ path('admin_party_index') }}" class="btn">Abbrechen</a>
+        </div>
+    {{ form_end(form) }}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Party form script loaded');
+    
+    // Kinder-Collection
+    const childrenCollection = document.getElementById('children-collection');
+    const addChildButton = document.getElementById('add-child');
+    let childIndex = parseInt(childrenCollection.dataset.index) || 0;
+
+    console.log('Children collection:', childrenCollection);
+    console.log('Child index:', childIndex);
+    console.log('Child prototype:', childrenCollection.dataset.prototype);
+
+    if (addChildButton) {
+        addChildButton.addEventListener('click', function() {
+            console.log('Add child button clicked');
+            
+            const currentCount = childrenCollection.querySelectorAll('.child-item').length;
+            console.log('Current child count:', currentCount);
+            
+            if (currentCount >= 3) {
+                alert('Maximal 3 Kinder können angegeben werden.');
+                return;
+            }
+
+            // HTML-Decode das Prototype (falls es encoded ist)
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = childrenCollection.dataset.prototype;
+            const prototype = textarea.value;
+            
+            console.log('Decoded prototype:', prototype);
+            
+            const newForm = prototype.replace(/__name__/g, childIndex);
+            console.log('New form HTML:', newForm);
+            
+            const div = document.createElement('div');
+            div.className = 'child-item';
+            div.style.cssText = 'background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1rem; border: 1px solid #dee2e6;';
+            div.innerHTML = `
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="flex: 1;">
+                        ${newForm}
+                    </div>
+                    <button type="button" class="btn btn-danger remove-child" style="padding: 0.5rem 1rem; white-space: nowrap;">
+                        ✗ Entfernen
+                    </button>
+                </div>
+            `;
+            
+            childrenCollection.appendChild(div);
+            childIndex++;
+            console.log('Child added, new index:', childIndex);
+        });
+    } else {
+        console.error('Add child button not found!');
+    }
+
+    childrenCollection.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-child')) {
+            const currentCount = childrenCollection.querySelectorAll('.child-item').length;
+            if (currentCount <= 1) {
+                alert('Mindestens ein Kind muss angegeben werden.');
+                return;
+            }
+            e.target.closest('.child-item').remove();
+        }
+    });
+
+    // Eltern-Collection
+    const parentCollection = document.getElementById('parent-names-collection');
+    const addParentButton = document.getElementById('add-parent');
+    let parentIndex = parseInt(parentCollection.dataset.index) || 0;
+
+    console.log('Parent collection:', parentCollection);
+    console.log('Parent index:', parentIndex);
+    console.log('Parent prototype:', parentCollection.dataset.prototype);
+
+    if (addParentButton) {
+        addParentButton.addEventListener('click', function() {
+            console.log('Add parent button clicked');
+            
+            const currentCount = parentCollection.querySelectorAll('.parent-name-item').length;
+            console.log('Current parent count:', currentCount);
+            
+            if (currentCount >= 2) {
+                alert('Maximal 2 Elternteile können angegeben werden.');
+                return;
+            }
+
+            // HTML-Decode das Prototype
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = parentCollection.dataset.prototype;
+            const prototype = textarea.value;
+            
+            console.log('Decoded prototype:', prototype);
+            
+            const newForm = prototype.replace(/__name__/g, parentIndex);
+            console.log('New form HTML:', newForm);
+            
+            const div = document.createElement('div');
+            div.className = 'parent-name-item';
+            div.style.cssText = 'display: flex; gap: 0.5rem; margin-bottom: 0.5rem;';
+            div.innerHTML = newForm + '<button type="button" class="btn btn-danger remove-parent" style="padding: 0.5rem 1rem; white-space: nowrap;">✗ Entfernen</button>';
+            
+            parentCollection.appendChild(div);
+            parentIndex++;
+            console.log('Parent added, new index:', parentIndex);
+        });
+    } else {
+        console.error('Add parent button not found!');
+    }
+
+    parentCollection.addEventListener('click', function(e) {
+        if (e.target.classList.contains('remove-parent')) {
+            const currentCount = parentCollection.querySelectorAll('.parent-name-item').length;
+            if (currentCount <= 1) {
+                alert('Mindestens ein Elternteil muss angegeben werden.');
+                return;
+            }
+            e.target.closest('.parent-name-item').remove();
+        }
+    });
+});
+</script>
+{% endblock %}

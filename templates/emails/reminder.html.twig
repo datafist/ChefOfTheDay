@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f39c12;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background-color: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .date-box {
+            background-color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border: 3px solid #f39c12;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .date-large {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1976d2;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⏰ Erinnerung: Kochdienst!</h1>
+    </div>
+    
+    <div class="content">
+        <p>Liebe Familie {{ party.parentNames|join(' & ') }},</p>
+        
+        <p>
+            dies ist eine freundliche Erinnerung an Ihren bevorstehenden Kochdienst
+            {% if daysInAdvance == 1 %}
+                <strong>morgen</strong>
+            {% else %}
+                in <strong>{{ daysInAdvance }} Tagen</strong>
+            {% endif %}:
+        </p>
+        
+        <div class="date-box">
+            <div class="date-large">
+                {{ assignment.assignedDate|date('l')|trans }}
+            </div>
+            <div style="font-size: 1.5em; margin-top: 10px;">
+                {{ assignment.assignedDate|date('d.m.Y') }}
+            </div>
+        </div>
+        
+        <p style="background-color: #e8f5e9; padding: 15px; border-radius: 4px; border-left: 4px solid #27ae60;">
+            <strong>✓ Checkliste:</strong><br>
+            • Zutaten besorgen<br>
+            • Rezept vorbereiten<br>
+            • Genug für alle Kinder einplanen<br>
+            • Bei Allergien/Unverträglichkeiten beachten
+        </p>
+        
+        <p style="margin-top: 30px;">
+            Vielen Dank für Ihr Engagement! 🙏
+        </p>
+    </div>
+    
+    <div class="footer">
+        <p>
+            Diese E-Mail wurde automatisch vom Kochdienst-Verwaltungssystem der Kita generiert.<br>
+            Bei Fragen wenden Sie sich bitte an die Kita-Leitung.
+        </p>
+    </div>
+</body>
+</html>

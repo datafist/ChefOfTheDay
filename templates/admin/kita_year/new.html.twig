@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Kita-Jahr anlegen - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Neues Kita-Jahr anlegen</h2>
+    
+    <p style="color: #666; margin-bottom: 1.5rem;">
+        Ein Kita-Jahr läuft immer vom 1. September bis 31. August des Folgejahres.
+    </p>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="start_year">Start-Jahr:</label>
+            <select name="start_year" id="start_year" required>
+                {% set currentYear = 'now'|date('Y')|number_format(0, '', '') %}
+                {% set endYear = currentYear + 10 %}
+                {% for year in 2024..endYear %}
+                    <option value="{{ year }}" {% if year == currentYear %}selected{% endif %}>
+                        {{ year }}/{{ year + 1 }} (01.09.{{ year }} - 31.08.{{ year + 1 }})
+                    </option>
+                {% endfor %}
+            </select>
+            <small style="color: #666;">
+                Wählen Sie das Jahr, in dem das Kita-Jahr beginnt (September). 
+                Die Auswahl beginnt bei 2024/25 und reicht {{ endYear - 2024 + 1 }} Jahre in die Zukunft.
+            </small>
+        </div>
+
+        <div style="margin-top: 1.5rem;">
+            <button type="submit" class="btn btn-success">Kita-Jahr anlegen</button>
+            <a href="{{ path('admin_kita_year_index') }}" class="btn">Abbrechen</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

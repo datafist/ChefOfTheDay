@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Familien - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+        <h2 style="margin: 0;">Familien</h2>
+        <a href="{{ path('admin_party_new') }}" class="btn btn-success">+ Neue Familie</a>
+    </div>
+
+    {% if activeYear %}
+        <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+            <strong>📅 Aktives Jahr:</strong> {{ activeYear.yearString }} ({{ activeYear.startDate|date('d.m.Y') }} - {{ activeYear.endDate|date('d.m.Y') }})
+        </div>
+    {% endif %}
+
+    {% if parties|length > 0 %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Kindname</th>
+                        <th>Geburtsjahr</th>
+                        <th>Erziehungsberechtigte</th>
+                        <th>Passwort</th>
+                        {% if activeYear %}
+                        <th style="text-align: center;">Dienste {{ activeYear.yearString }}</th>
+                        {% endif %}
+                        <th>Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for party in parties %}
+                    <tr>
+                        <td>
+                            {{ party.childrenNames }}
+                            {% if party.children|length > 1 %}
+                                <span style="color: #6c757d; font-size: 0.85rem;">({{ party.children|length }} Kinder)</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for child in party.children %}
+                                {{ child.birthYear }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ party.parentNames|join(', ') }}</td>
+                        <td><code style="background: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px;">{{ party.generatedPassword }}</code></td>
+                        {% if activeYear %}
+                        <td style="text-align: center;">
+                            <span style="display: inline-block; background: #28a745; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: bold;">
+                                {{ assignmentCounts[party.id] ?? 0 }}
+                            </span>
+                        </td>
+                        {% endif %}
+                        <td style="white-space: nowrap;">
+                            <a href="{{ path('admin_party_show', {id: party.id}) }}" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Anzeigen</a>
+                            <a href="{{ path('admin_party_edit', {id: party.id}) }}" class="btn" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Bearbeiten</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p style="margin-top: 1rem; color: #666; font-size: 0.9rem;">Tipp: Auf mobilen Geräten können Sie die Tabelle horizontal scrollen.</p>
+    {% else %}
+        <p style="text-align: center; color: #666; padding: 2rem;">Noch keine Familien vorhanden.</p>
+    {% endif %}
+</div>
+{% endblock %}

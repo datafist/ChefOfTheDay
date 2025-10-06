@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kochdienst-Verwaltung{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>🍳</text></svg>">
+    
+    {% block stylesheets %}
+    {% endblock %}
+
+    {% block javascripts %}
+        {% block importmap %}{{ importmap('app') }}{% endblock %}
+    {% endblock %}
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🍳 Kochdienst-Verwaltung</h1>
+            <button class="nav-toggle" onclick="document.querySelector('nav').classList.toggle('active')">☰</button>
+        </div>
+        <nav>
+            {% if app.user %}
+                {% if is_granted('ROLE_ADMIN') %}
+                    <a href="{{ path('admin_dashboard') }}">Dashboard</a>
+                    <a href="{{ path('admin_calendar') }}">Kalender</a>
+                    <a href="{{ path('admin_party_index') }}">Familien</a>
+                    <a href="{{ path('admin_kita_year_index') }}">Kita-Jahre</a>
+                    <a href="{{ path('admin_holiday_index') }}">Feiertage</a>
+                    <a href="{{ path('admin_vacation_index') }}">Ferien</a>
+                    <a href="{{ path('app_logout') }}">Abmelden</a>
+                {% else %}
+                    <a href="{{ path('parent_availability') }}">Verfügbare Tage</a>
+                    <a href="{{ path('parent_logout') }}">Abmelden</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ path('app_login') }}">Anmelden</a>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="container">
+        {# Flash Messages #}
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="alert alert-{{ type }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        {% block body %}{% endblock %}
+    </main>
+
+    <script>
+        // Active Link Highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('nav a');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

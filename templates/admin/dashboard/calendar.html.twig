@@ -1,0 +1,257 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Kochplan Kalender - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-body">
+        <div class="card-header-actions">
+            <h2>Kochplan Kalender {{ activeKitaYear.yearString }}</h2>
+            <div class="btn-group">
+                <a href="{{ path('admin_dashboard') }}" class="btn">📋 Listen-Ansicht</a>
+                <a href="{{ path('admin_export_pdf') }}" class="btn btn-danger">📄 PDF Export</a>
+            </div>
+        </div>
+
+        <div class="alert alert-success">
+            <strong>📅 Zeitraum:</strong> {{ activeKitaYear.startDate|date('d.m.Y') }} - {{ activeKitaYear.endDate|date('d.m.Y') }}
+            <br>
+            <strong>🍳 Zuweisungen:</strong> {{ totalAssignments }} Kochdienste
+        </div>
+
+        <div id="calendar-months">
+            {% for month in calendar %}
+                <div class="calendar-month calendar-month-admin">
+                    <h3>{{ month.name_de }} {{ month.year }}</h3>
+                    
+                    <div class="calendar-grid">
+                        <!-- Wochentag-Header -->
+                        <div class="calendar-header calendar-header-primary">Mo</div>
+                        <div class="calendar-header calendar-header-primary">Di</div>
+                        <div class="calendar-header calendar-header-primary">Mi</div>
+                        <div class="calendar-header calendar-header-primary">Do</div>
+                        <div class="calendar-header calendar-header-primary">Fr</div>
+                        <div class="calendar-header calendar-header-weekend">Sa</div>
+                        <div class="calendar-header calendar-header-weekend">So</div>
+                        
+                        <!-- Kalender-Tage -->
+                        {% for week in month.weeks %}
+                            {% for day in week %}
+                                {% if day is null %}
+                                    <div class="calendar-day-empty"></div>
+                                {% else %}
+                                    <div class="calendar-day-cell {% if day.assignment %}has-assignment{% endif %} {% if not day.isCurrentMonth %}out-of-month{% endif %}">
+                                        <div class="calendar-day-number">{{ day.day }}</div>
+                                        
+                                        {% if day.assignment %}
+                                            <div class="calendar-assignment">
+                                                <div class="calendar-assignment-name">
+                                                    🍳 {{ day.assignment.party.childrenNames }}
+                                                </div>
+                                                <div class="calendar-assignment-parents">
+                                                    {{ day.assignment.party.parentNames|join(' & ') }}
+                                                </div>
+                                                
+                                                {% if day.assignment.isManuallyAssigned %}
+                                                    <span class="calendar-assignment-badge">✏️ Manuell</span>
+                                                {% endif %}
+                                                
+                                                <div class="calendar-assignment-actions">
+                                                    <button 
+                                                        onclick="editAssignment({{ day.assignment.id }}, '{{ day.date }}', '{{ day.assignment.party.childrenNames }}', {{ day.assignment.party.id }}, '{{ csrf_token('edit-assignment-' ~ day.assignment.id) }}')"
+                                                        class="calendar-btn-edit">
+                                                        ✏️ Ändern
+                                                    </button>
+                                                    <button 
+                                                        onclick="deleteAssignment({{ day.assignment.id }}, '{{ day.assignment.party.childrenNames }}', '{{ day.date }}', '{{ csrf_token('delete-assignment-' ~ day.assignment.id) }}')"
+                                                        class="calendar-btn-delete"
+                                                        title="Zuweisung löschen">
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            {% if day.isCurrentMonth and not day.isExcluded %}
+                                                <button 
+                                                    onclick="createAssignment('{{ day.date }}', '{{ csrf_token('create-assignment-' ~ day.date) }}')"
+                                                    class="calendar-btn-assign">
+                                                    ➕ Familie zuweisen
+                                                </button>
+                                            {% elseif day.isCurrentMonth and day.isExcluded %}
+                                                <div class="calendar-excluded-icon" title="Wochenende, Feiertag oder Ferienzeit">
+                                                    🚫
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal für Bearbeitung -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Zuweisung bearbeiten</h3>
+        
+        <form id="editForm" method="post" action="">
+            <input type="hidden" name="_token" id="csrf_token" value="">
+            <input type="hidden" name="date" id="hidden_date" value="">
+            
+            <div class="form-group">
+                <label><strong>Datum:</strong> <span id="modalDate"></span></label>
+            </div>
+            
+            <div class="form-group" id="currentFamilyGroup">
+                <label><strong>Aktuelle Familie:</strong> <span id="modalCurrentFamily"></span></label>
+            </div>
+            
+            <div class="form-group">
+                <label for="party_id"><span id="familySelectLabel">Neue Familie auswählen:</span></label>
+                <select name="party_id" id="party_id" required>
+                    <option value="">-- Bitte wählen --</option>
+                    {% for party in allParties %}
+                        <option value="{{ party.id }}">
+                            {{ party.childrenNames }} ({{ party.parentNames|join(' & ') }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-success" id="submitButton">Speichern</button>
+                <button type="button" onclick="closeModal()" class="btn btn-secondary">Abbrechen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal für Löschen -->
+<div id="deleteModal" class="modal">
+    <div class="modal-content">
+        <h3 class="modal-title-danger">Zuweisung löschen</h3>
+        
+        <form id="deleteForm" method="post" action="">
+            <input type="hidden" name="_token" id="delete_csrf_token" value="">
+            
+            <p>Möchten Sie die Zuweisung wirklich löschen?</p>
+            
+            <div class="alert alert-danger">
+                <div><strong>Familie:</strong> <span id="deleteFamily"></span></div>
+                <div><strong>Datum:</strong> <span id="deleteDate"></span></div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn btn-danger">Ja, löschen</button>
+                <button type="button" onclick="closeDeleteModal()" class="btn btn-secondary">Abbrechen</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function editAssignment(assignmentId, date, currentFamily, currentPartyId, csrfTokenValue) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDate = document.getElementById('modalDate');
+    const modalCurrentFamily = document.getElementById('modalCurrentFamily');
+    const currentFamilyGroup = document.getElementById('currentFamilyGroup');
+    const familySelectLabel = document.getElementById('familySelectLabel');
+    const submitButton = document.getElementById('submitButton');
+    const csrfToken = document.getElementById('csrf_token');
+    const partySelect = document.getElementById('party_id');
+    
+    modalTitle.textContent = 'Zuweisung bearbeiten';
+    currentFamilyGroup.style.display = 'block';
+    familySelectLabel.textContent = 'Neue Familie auswählen:';
+    submitButton.textContent = 'Speichern';
+    
+    form.action = '{{ path('admin_assignment_edit', {id: '__ID__'}) }}'.replace('__ID__', assignmentId);
+    csrfToken.value = csrfTokenValue;
+    
+    modalDate.textContent = formatDate(date);
+    modalCurrentFamily.textContent = currentFamily;
+    partySelect.value = currentPartyId;
+    
+    modal.classList.add('modal-open');
+}
+
+function createAssignment(date, csrfTokenValue) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalDate = document.getElementById('modalDate');
+    const currentFamilyGroup = document.getElementById('currentFamilyGroup');
+    const familySelectLabel = document.getElementById('familySelectLabel');
+    const submitButton = document.getElementById('submitButton');
+    const csrfToken = document.getElementById('csrf_token');
+    const hiddenDate = document.getElementById('hidden_date');
+    const partySelect = document.getElementById('party_id');
+    
+    modalTitle.textContent = 'Familie zuweisen';
+    currentFamilyGroup.style.display = 'none';
+    familySelectLabel.textContent = 'Familie auswählen:';
+    submitButton.textContent = 'Zuweisen';
+    
+    form.action = '{{ path('admin_assignment_create') }}';
+    csrfToken.value = csrfTokenValue;
+    hiddenDate.value = date;
+    
+    modalDate.textContent = formatDate(date);
+    partySelect.value = '';
+    
+    modal.classList.add('modal-open');
+}
+
+function deleteAssignment(assignmentId, familyName, date, csrfTokenValue) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteForm');
+    const csrfToken = document.getElementById('delete_csrf_token');
+    const deleteFamily = document.getElementById('deleteFamily');
+    const deleteDate = document.getElementById('deleteDate');
+    
+    form.action = '{{ path('admin_assignment_delete', {id: '__ID__'}) }}'.replace('__ID__', assignmentId);
+    csrfToken.value = csrfTokenValue;
+    
+    deleteFamily.textContent = familyName;
+    deleteDate.textContent = formatDate(date);
+    
+    modal.classList.add('modal-open');
+}
+
+function closeModal() {
+    document.getElementById('editModal').classList.remove('modal-open');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('modal-open');
+}
+
+function formatDate(dateStr) {
+    const [year, month, day] = dateStr.split('-');
+    return `${day}.${month}.${year}`;
+}
+
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+document.getElementById('deleteModal').addEventListener('click', function(e) {
+    if (e.target === this) closeDeleteModal();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

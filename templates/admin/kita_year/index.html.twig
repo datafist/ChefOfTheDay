@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Kita-Jahre - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2>Kita-Jahre</h2>
+        <a href="{{ path('admin_kita_year_new') }}" class="btn btn-success">+ Neues Kita-Jahr</a>
+    </div>
+
+    {% if kita_years|length > 0 %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Zeitraum</th>
+                    <th>Von</th>
+                    <th>Bis</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in kita_years %}
+                <tr>
+                    <td><strong>{{ year.yearString }}</strong></td>
+                    <td>{{ year.startDate|date('d.m.Y') }}</td>
+                    <td>{{ year.endDate|date('d.m.Y') }}</td>
+                    <td>
+                        {% if year.isActive %}
+                            <span style="color: #27ae60; font-weight: bold;">✓ Aktiv</span>
+                        {% else %}
+                            <span style="color: #999;">Inaktiv</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not year.isActive %}
+                            <form method="post" action="{{ path('admin_kita_year_activate', {id: year.id}) }}" style="display: inline;">
+                                <input type="hidden" name="_token" value="{{ csrf_token('activate' ~ year.id) }}">
+                                <button type="submit" class="btn btn-success" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Aktivieren</button>
+                            </form>
+                        {% endif %}
+                        
+                        {% set info = deletability_info[year.id] %}
+                        {% if info.canDelete %}
+                            <form method="post" action="{{ path('admin_kita_year_delete', {id: year.id}) }}" style="display: inline;" onsubmit="return confirm('Wirklich löschen? Alle Daten dieses Jahres werden unwiderruflich gelöscht!');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ year.id) }}">
+                                <button type="submit" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.875rem;">Löschen</button>
+                            </form>
+                        {% else %}
+                            <button type="button" class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; opacity: 0.5; cursor: not-allowed;" disabled title="{{ info.reason }}">
+                                🔒 Gesperrt
+                            </button>
+                            {% if info.reason %}
+                                <br>
+                                <small style="color: #856404; font-size: 0.75rem;">{{ info.reason }}</small>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="text-align: center; color: #666; padding: 2rem;">Noch keine Kita-Jahre vorhanden.</p>
+    {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+    <a href="{{ path('admin_dashboard') }}" class="btn">← Zurück zum Dashboard</a>
+</div>
+{% endblock %}

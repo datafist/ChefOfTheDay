@@ -1,0 +1,28 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Willkommen - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Willkommen zur Kochdienst-Verwaltung</h2>
+    <p>Diese Anwendung hilft bei der gerechten Verteilung von Kochdiensten in unserer Kita.</p>
+    
+    <h3 style="margin-top: 2rem;">Funktionen:</h3>
+    <ul style="margin: 1rem 0; padding-left: 2rem;">
+        <li>Gerechte Verteilung basierend auf Verfügbarkeitsangaben</li>
+        <li>Gewichtete Berücksichtigung der Haushaltsgröße</li>
+        <li>Eltern geben ihre verfügbaren Tage an</li>
+        <li>Automatische Berücksichtigung von Feiertagen und Ferien</li>
+        <li>Jahresübergreifende faire Verteilung</li>
+        <li>Flexible manuelle Anpassungen möglich</li>
+    </ul>
+    
+    <div style="margin-top: 2rem;">
+        {% if is_granted('ROLE_ADMIN') %}
+            <a href="{{ path('admin_party_index') }}" class="btn btn-success">Zum Admin-Bereich</a>
+        {% else %}
+            <a href="{{ path('parent_login') }}" class="btn">Eltern-Login</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Feiertage - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div style="margin-bottom: 1.5rem;">
+        <h2>Feiertage Baden-Württemberg</h2>
+        <p style="color: #666; margin-top: 0.5rem;">
+            Die Feiertage werden automatisch beim Anlegen eines Kita-Jahres generiert.
+        </p>
+    </div>
+
+    {% if active_year %}
+        <div style="background-color: #e8f5e9; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem;">
+            <strong>Aktives Kita-Jahr:</strong> {{ active_year.yearString }}
+        </div>
+
+        {% if holidays|length > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Datum</th>
+                        <th>Wochentag</th>
+                        <th>Feiertag</th>
+                        <th style="text-align: center;">Typ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for holiday in holidays %}
+                    <tr>
+                        <td>{{ holiday.date|date('d.m.Y') }}</td>
+                        <td>
+                            {% set dayName = holiday.date|date('l') %}
+                            {% if dayName == 'Monday' %}Montag
+                            {% elseif dayName == 'Tuesday' %}Dienstag
+                            {% elseif dayName == 'Wednesday' %}Mittwoch
+                            {% elseif dayName == 'Thursday' %}Donnerstag
+                            {% elseif dayName == 'Friday' %}Freitag
+                            {% elseif dayName == 'Saturday' %}Samstag
+                            {% elseif dayName == 'Sunday' %}Sonntag
+                            {% endif %}
+                        </td>
+                        <td><strong>{{ holiday.name }}</strong></td>
+                        <td style="text-align: center;">
+                            {% if holiday.name in ['Neujahr', 'Heilige Drei Könige', 'Tag der Arbeit', 'Tag der Deutschen Einheit', 'Allerheiligen', '1. Weihnachtstag', '2. Weihnachtstag'] %}
+                                <span style="background: #e3f2fd; color: #1976d2; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Fest</span>
+                            {% else %}
+                                <span style="background: #fff3e0; color: #f57c00; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">Beweglich</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 1rem; padding: 1rem; background-color: #f5f5f5; border-radius: 4px;">
+                <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                    <strong>📅 {{ holidays|length }} Feiertage</strong> im Kita-Jahr {{ active_year.yearString }}
+                </p>
+                <p style="margin: 0.5rem 0 0 0; color: #666; font-size: 0.85rem;">
+                    ℹ️ Diese Tage werden automatisch bei der Plangenerierung ausgeschlossen.
+                </p>
+            </div>
+        {% else %}
+            <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 1rem; border-radius: 4px;">
+                <p style="margin: 0; color: #856404;">
+                    ⚠️ Noch keine Feiertage vorhanden. Die Feiertage werden automatisch beim Anlegen des Kita-Jahres generiert.
+                </p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div style="text-align: center; padding: 2rem; background-color: #fff3cd; border-radius: 4px;">
+            <p style="margin: 0; color: #856404;">
+                ℹ️ Bitte aktivieren Sie zuerst ein <a href="{{ path('admin_kita_year_index') }}">Kita-Jahr</a>.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<div style="margin-top: 1rem;">
+    <a href="{{ path('admin_dashboard') }}" class="btn">← Zurück zum Dashboard</a>
+</div>
+{% endblock %}

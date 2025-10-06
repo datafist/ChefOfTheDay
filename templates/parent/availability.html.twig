@@ -1,0 +1,297 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Verfügbarkeit eingeben - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <div class="card-body">
+        <h2>Verfügbarkeit für {{ party.childrenNames }}</h2>
+        
+        {% if activeYear %}
+            <p style="color: #666; margin-bottom: 1.5rem;">
+                <strong>Kita-Jahr:</strong> {{ activeYear.yearString }} ({{ activeYear.startDate|date('d.m.Y') }} - {{ activeYear.endDate|date('d.m.Y') }})
+            </p>
+
+            {% if planGenerated %}
+                {# Plan wurde bereits generiert - zeige zugewiesene Termine #}
+                <div class="alert alert-success" style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 1.5rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <h3 style="margin-top: 0;">✅ Kochplan für {{ activeYear.yearString }} wurde generiert</h3>
+                    <p style="margin-bottom: 1rem;">
+                        Sie wurden <strong>{{ assignmentCount }} Mal</strong> für den Kochdienst eingeteilt:
+                    </p>
+                    
+                    {% if assignedDates|length > 0 %}
+                        <div style="background: white; padding: 1rem; border-radius: 4px; border: 1px solid #c3e6cb;">
+                            <h4 style="margin-top: 0;">📅 Ihre Kochdienst-Termine:</h4>
+                            <ul style="list-style: none; padding: 0; margin: 0;">
+                                {% for assignment in assignedDates %}
+                                    <li style="padding: 0.5rem; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between;">
+                                        <span style="font-weight: bold;">{{ assignment.dayName }}</span>
+                                        <span>{{ assignment.dateFormatted }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% else %}
+                        <p style="color: #856404; margin-top: 1rem;">
+                            ℹ️ Sie wurden in diesem Jahr noch nicht für einen Kochdienst eingeteilt.
+                        </p>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-info" style="background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <strong>📋 Ihre ursprüngliche Verfügbarkeit:</strong><br>
+                    Im Kalender unten sehen Sie, welche Tage Sie als verfügbar angegeben haben (schreibgeschützt).
+                </div>
+            {% else %}
+                {# Plan noch nicht generiert - zeige Verfügbarkeitskalender #}
+                <p style="color: #666; margin-bottom: 1.5rem;">
+                    Bitte markieren Sie alle Tage, an denen Sie für den Kochdienst verfügbar sind.
+                </p>
+
+                <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <strong>📊 Status:</strong>
+                    Der Kochplan für dieses Jahr wurde noch nicht generiert. Bitte geben Sie Ihre Verfügbarkeit ein.
+                </div>
+            {% endif %}
+
+            <form method="post" id="availability-form" action="{{ path('parent_availability') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('availability') }}">
+                <input type="hidden" name="available_dates" id="available-dates-input" value="">
+
+                {% if not planGenerated %}
+                <div class="quickactions">
+                    <h3>⚡ Schnellaktionen</h3>
+                    <div>
+                        <h4>Wochentage:</h4>
+                        <div class="quickactions-buttons">
+                            <button type="button" class="btn btn-outline" data-select-weekday="1">✓ Montage</button>
+                            <button type="button" class="btn btn-outline" data-select-weekday="2">✓ Dienstage</button>
+                            <button type="button" class="btn btn-outline" data-select-weekday="3">✓ Mittwoche</button>
+                            <button type="button" class="btn btn-outline" data-select-weekday="4">✓ Donnerstage</button>
+                            <button type="button" class="btn btn-outline" data-select-weekday="5">✓ Freitage</button>
+                        </div>
+                        <h4>Alle Tage:</h4>
+                        <div class="quickactions-buttons">
+                            <button type="button" class="btn btn-success" id="select-all">✓ Alle auswählen</button>
+                            <button type="button" class="btn btn-secondary" id="deselect-all">✗ Alle abwählen</button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% for month in calendar %}
+                    <div class="calendar-month calendar-month-primary">
+                        <h3>{{ month.name_de }}</h3>
+                        
+                        <div class="calendar-grid">
+                            <!-- Wochentag-Header -->
+                            <div class="calendar-header calendar-header-primary">Mo</div>
+                            <div class="calendar-header calendar-header-primary">Di</div>
+                            <div class="calendar-header calendar-header-primary">Mi</div>
+                            <div class="calendar-header calendar-header-primary">Do</div>
+                            <div class="calendar-header calendar-header-primary">Fr</div>
+                            <div class="calendar-header calendar-header-danger">Sa</div>
+                            <div class="calendar-header calendar-header-danger">So</div>
+                            
+                            <!-- Kalender-Tage -->
+                            {% for week in month.weeks %}
+                                {% for day in week %}
+                                    {% if day is null %}
+                                        <div class="calendar-day-empty"></div>
+                                    {% elseif day.isExcluded %}
+                                        <div class="calendar-day-excluded">
+                                            <div class="day-number">{{ day.day }}</div>
+                                            <div class="day-reason" title="{{ day.excludeReason }}">
+                                                {{ day.excludeReason|length > 15 ? day.excludeReason|slice(0, 15) ~ '...' : day.excludeReason }}
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <label class="calendar-day-label">
+                                            <input type="checkbox" 
+                                                   class="checkbox-success day-checkbox"
+                                                   value="{{ day.date }}"
+                                                   data-date="{{ day.date }}"
+                                                   {% if day.date in savedDates %}checked{% endif %}
+                                                   {% if planGenerated %}disabled{% endif %}>
+                                            <div class="day-number">{{ day.day }}</div>
+                                        </label>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+
+                {% if not planGenerated %}
+                <div class="sticky-footer sticky-footer-primary">
+                    <div class="sticky-footer-counter sticky-footer-counter-primary">
+                        <span id="selection-counter">{{ savedDates|length }}</span> Tage ausgewählt
+                    </div>
+                    <div class="sticky-footer-actions">
+                        <button type="submit" class="btn btn-success">💾 Verfügbarkeit speichern</button>
+                        <a href="{{ path('parent_logout') }}" class="btn btn-secondary">Abmelden</a>
+                    </div>
+                </div>
+                {% else %}
+                <div style="text-align: right; margin-top: 1.5rem; padding: 1rem;">
+                    <p style="color: #666; margin-bottom: 1rem;">
+                        <strong>{{ savedDates|length }}</strong> Tage als verfügbar angegeben (schreibgeschützt)
+                    </p>
+                    <a href="{{ path('parent_logout') }}" class="btn btn-secondary">Abmelden</a>
+                </div>
+                {% endif %}
+            </form>
+        {% else %}
+            <div class="alert alert-warning">
+                <p style="margin: 0;">⚠️ Kein aktives Kita-Jahr gefunden. Bitte kontaktieren Sie die Kita-Leitung.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if activeYear and not planGenerated %}
+<script>
+// Verfügbarkeits-Kalender JavaScript (Inline - wird sofort ausgeführt)
+(function() {
+    'use strict';
+    
+    function initAvailabilityCalendar() {
+        console.log('Availability calendar initialized');
+        
+        const form = document.getElementById('availability-form');
+        if (!form) {
+            console.log('Form not found');
+            return;
+        }
+        
+        const checkboxes = form.querySelectorAll('input[type="checkbox"][data-date]');
+        const hiddenInput = document.getElementById('available-dates-input');
+        const counter = document.getElementById('selection-counter');
+        
+        console.log('Found', checkboxes.length, 'checkboxes');
+        
+        // Initialize hidden input with current checkbox state
+        updateHiddenInput();
+        updateCounter();
+        
+        // Update hidden input and counter when checkboxes change
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                console.log('Checkbox changed:', this.dataset.date, this.checked);
+                updateHiddenInput();
+                updateCounter();
+            });
+        });
+        
+        // Select all Mondays, Tuesdays, etc.
+        const weekdayButtons = document.querySelectorAll('[data-select-weekday]');
+        console.log('Found', weekdayButtons.length, 'weekday buttons');
+        weekdayButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const weekday = parseInt(this.dataset.selectWeekday);
+                console.log('Selecting weekday:', weekday, 'button:', this);
+                
+                let toggledCount = 0;
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.disabled) return;
+                    
+                    // Parse date correctly (YYYY-MM-DD format)
+                    const dateStr = checkbox.dataset.date;
+                    const date = new Date(dateStr + 'T12:00:00'); // Use noon to avoid timezone issues
+                    let isoWeekday = date.getDay();
+                    // Convert Sunday from 0 to 7 for ISO format
+                    if (isoWeekday === 0) isoWeekday = 7;
+                    
+                    if (isoWeekday === weekday) {
+                        checkbox.checked = !checkbox.checked; // Toggle
+                        toggledCount++;
+                    }
+                });
+                
+                console.log('Toggled', toggledCount, 'checkboxes for weekday', weekday);
+                updateHiddenInput();
+                updateCounter();
+            });
+        });
+        
+        // Select all
+        const selectAllButton = document.getElementById('select-all');
+        console.log('Select all button:', selectAllButton);
+        if (selectAllButton) {
+            selectAllButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Selecting all');
+                let count = 0;
+                checkboxes.forEach(checkbox => {
+                    if (!checkbox.disabled) {
+                        checkbox.checked = true;
+                        count++;
+                    }
+                });
+                console.log('Selected', count, 'checkboxes');
+                updateHiddenInput();
+                updateCounter();
+            });
+        }
+        
+        // Deselect all
+        const deselectAllButton = document.getElementById('deselect-all');
+        console.log('Deselect all button:', deselectAllButton);
+        if (deselectAllButton) {
+            deselectAllButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Deselecting all');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                console.log('Deselected all checkboxes');
+                updateHiddenInput();
+                updateCounter();
+            });
+        }
+        
+        function updateHiddenInput() {
+            const selectedDates = [];
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedDates.push(checkbox.dataset.date);
+                }
+            });
+            
+            if (hiddenInput) {
+                hiddenInput.value = JSON.stringify(selectedDates);
+                console.log('Updated hidden input with', selectedDates.length, 'dates');
+            }
+        }
+        
+        function updateCounter() {
+            if (counter) {
+                const count = Array.from(checkboxes).filter(cb => cb.checked).length;
+                counter.textContent = count;
+            }
+        }
+        
+        // Before form submit, make sure hidden input is updated
+        form.addEventListener('submit', function(e) {
+            updateHiddenInput();
+            console.log('Form submitting with hidden input value:', hiddenInput.value);
+        });
+    }
+    
+    // Initialisiere sofort, wenn das DOM bereit ist
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initAvailabilityCalendar);
+    } else {
+        // DOM ist bereits geladen
+        initAvailabilityCalendar();
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+{% endblock %}

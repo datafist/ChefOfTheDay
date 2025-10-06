@@ -1,0 +1,83 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ party.childrenNames }} - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Familie: {{ party.childrenNames }}</h2>
+    
+    <table style="margin-top: 1rem;">
+        <tr>
+            <th style="width: 200px;">Kinder:</th>
+            <td>
+                {% for child in party.children %}
+                    <div style="margin-bottom: 0.25rem;">
+                        <strong>{{ child.name }}</strong> (geboren {{ child.birthYear }})
+                    </div>
+                {% endfor %}
+            </td>
+        </tr>
+        <tr>
+            <th>E-Mail:</th>
+            <td>{{ party.email ?? '<span style="color: #999;">Nicht angegeben</span>'|raw }}</td>
+        </tr>
+        <tr>
+            <th>Erziehungsberechtigte:</th>
+            <td>{{ party.parentNames|join(', ') }}</td>
+        </tr>
+        <tr>
+            <th>Login-Passwort:</th>
+            <td><code style="background-color: #f8f9fa; padding: 0.25rem 0.5rem; border-radius: 4px;">{{ party.generatedPassword }}</code></td>
+        </tr>
+        <tr>
+            <th>Erstellt am:</th>
+            <td>{{ party.createdAt|date('d.m.Y H:i') }}</td>
+        </tr>
+    </table>
+
+    {% if activeYear %}
+        <div style="margin-top: 2rem;">
+            <h3>📊 Kochdienste im Jahr {{ activeYear.yearString }}</h3>
+            
+            <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 1rem; border-radius: 4px; margin-top: 1rem;">
+                <strong>Anzahl Zuweisungen:</strong> {{ assignmentCount }}
+                {% if party.isSingleParent %}
+                    <span style="color: #666;">(Alleinerziehend - reduzierte Last)</span>
+                {% endif %}
+            </div>
+
+            {% if assignments|length > 0 %}
+                <div style="margin-top: 1rem;">
+                    <h4>Zugewiesene Termine:</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        {% for assignment in assignments %}
+                        <li style="padding: 0.5rem; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center;">
+                            <span>
+                                <strong>{{ assignment.assignedDate|date('d.m.Y') }}</strong>
+                                ({{ assignment.assignedDate|date('l')|trans }})
+                            </span>
+                            {% if assignment.isManuallyAssigned %}
+                                <span style="background-color: #ffc107; color: #000; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                    ✏️ Manuell
+                                </span>
+                            {% else %}
+                                <span style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                    🤖 Automatisch
+                                </span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% else %}
+                <p style="color: #666; margin-top: 1rem;">Noch keine Kochdienste für dieses Jahr zugewiesen.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 1.5rem;">
+        <a href="{{ path('admin_party_edit', {id: party.id}) }}" class="btn">Bearbeiten</a>
+        <a href="{{ path('admin_party_index') }}" class="btn">Zurück zur Liste</a>
+    </div>
+</div>
+{% endblock %}

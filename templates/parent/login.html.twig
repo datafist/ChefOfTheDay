@@ -1,0 +1,67 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Eltern-Login - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card" style="max-width: 500px; margin: 2rem auto;">
+    <h2 style="text-align: center;">👨‍👩‍👧 Eltern-Login</h2>
+    
+    <p style="color: #666; text-align: center; margin-bottom: 1.5rem;">
+        Wählen Sie Ihre Familie und geben Sie das Passwort ein
+    </p>
+
+    <form method="post">
+        <div class="form-group">
+            <label for="party_id">Familie auswählen:</label>
+            <select name="party_id" id="party_id" required onchange="showPassword(this.value)">
+                <option value="">-- Bitte wählen --</option>
+                {% for party in parties %}
+                    <option value="{{ party.id }}" data-password="{{ party.generatedPassword }}">
+                        {{ party.childrenNames }} ({{ party.parentNames|join(', ') }})
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Passwort:</label>
+            <input type="password" id="password" name="password" required placeholder="Erster Buchstabe + Geburtsjahr">
+            <small style="color: #666;">
+                Beispiel: Kind "Max", geboren 2019 → Passwort: M2019
+            </small>
+        </div>
+
+        <div id="password-hint" style="background-color: #e3f2fd; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; display: none;">
+            <small style="color: #1976d2;">
+                💡 Hinweis: Ihr Passwort ist <strong id="password-hint-text"></strong>
+            </small>
+        </div>
+
+        <button type="submit" class="btn btn-success" style="width: 100%;">
+            Anmelden
+        </button>
+    </form>
+
+    <div style="text-align: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #ddd;">
+        <p style="color: #666; margin: 0;">Administrator?</p>
+        <a href="{{ path('app_login') }}" class="btn" style="margin-top: 0.5rem;">Zum Admin-Login</a>
+    </div>
+</div>
+
+<script>
+function showPassword(partyId) {
+    const select = document.getElementById('party_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const password = selectedOption.dataset.password;
+    const hint = document.getElementById('password-hint');
+    const hintText = document.getElementById('password-hint-text');
+    
+    if (password) {
+        hintText.textContent = password;
+        hint.style.display = 'block';
+    } else {
+        hint.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

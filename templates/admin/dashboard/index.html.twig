@@ -1,0 +1,196 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Admin Dashboard - {{ parent() }}{% endblock %}
+
+{% block body %}
+<div class="card">
+    <h2>Admin Dashboard</h2>
+    
+    {% if activeKitaYear %}
+        <div style="background-color: #f8f9fa; border-left: 4px solid #2c3e50; padding: 1rem; margin: 1rem 0;">
+            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">Aktives Kita-Jahr: {{ activeKitaYear.yearString }}</h3>
+            <p style="margin: 0; color: #666;">
+                {{ activeKitaYear.startDate|date('d.m.Y') }} - {{ activeKitaYear.endDate|date('d.m.Y') }}
+            </p>
+        </div>
+
+        {% if previousYearsDeletable|length > 0 %}
+            <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffc107; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0;">
+                <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #856404;">
+                    🗑️ Vorjahr kann gelöscht werden
+                </h3>
+                <p style="margin: 0 0 0.75rem 0; color: #856404;">
+                    Der Kochplan für {{ activeKitaYear.yearString }} wurde generiert. 
+                    {% if previousYearsDeletable|length == 1 %}
+                        Das folgende Vorjahr kann jetzt gelöscht werden:
+                    {% else %}
+                        Die folgenden Vorjahre können jetzt gelöscht werden:
+                    {% endif %}
+                </p>
+                <ul style="margin: 0.5rem 0 0.75rem 1.5rem; color: #856404;">
+                    {% for year in previousYearsDeletable %}
+                        <li><strong>{{ year.yearString }}</strong> ({{ year.startDate|date('d.m.Y') }} - {{ year.endDate|date('d.m.Y') }})</li>
+                    {% endfor %}
+                </ul>
+                <a href="{{ path('admin_kita_year_index') }}" class="btn" style="background-color: #ffc107; color: #000; border: 1px solid #ffc107;">
+                    Zu den Kita-Jahren →
+                </a>
+            </div>
+        {% endif %}
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
+            <div style="text-align: center; background-color: #f8f9fa; border: 1px solid #ddd; padding: 1.5rem; border-radius: 4px;">
+                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">Zugewiesene Kochdienste</h4>
+                <div style="font-size: 2rem; font-weight: bold; color: #2c3e50;">{{ totalAssignments }}</div>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+            <form method="post" action="{{ path('admin_generate_plan') }}" onsubmit="return confirm('Möchten Sie wirklich einen neuen Kochplan generieren? Alle bisherigen Zuweisungen werden gelöscht!');">
+                <input type="hidden" name="_token" value="{{ csrf_token('generate-plan') }}">
+                <button type="submit" class="btn btn-success">
+                    Plan generieren
+                </button>
+            </form>
+            
+            {% if assignments|length > 0 %}
+                <form method="post" action="{{ path('admin_send_notifications') }}" style="display: inline;" onsubmit="return confirm('Möchten Sie wirklich E-Mail-Benachrichtigungen an alle Familien versenden?');">
+                    <input type="hidden" name="_token" value="{{ csrf_token('send-notifications') }}">
+                    <button type="submit" class="btn btn-success">
+                        📧 E-Mails versenden
+                    </button>
+                </form>
+                
+                <a href="{{ path('admin_calendar') }}" class="btn">
+                    Kalender
+                </a>
+                <a href="{{ path('admin_export_pdf') }}" class="btn btn-danger">
+                    PDF exportieren
+                </a>
+            {% endif %}
+        </div>
+
+        {% if assignments|length > 0 %}
+            <h3 style="margin: 2rem 0 1rem 0;">Statistik nach Familien</h3>
+            
+            {% if newFamilies|length > 0 %}
+                <div class="alert alert-success" style="background-color: #d4edda; border: 1px solid #c3e6cb; border-left: 4px solid #28a745; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                    <strong>🆕 Neue Familien in diesem Jahr:</strong> 
+                    {{ newFamilies|length }} 
+                    {% if newFamilies|length == 1 %}Familie{% else %}Familien{% endif %}
+                    ({% for family in newFamilies %}{{ family.childrenNames }}{% if not loop.last %}, {% endif %}{% endfor %})
+                </div>
+            {% endif %}
+            
+            <div class="alert alert-info" style="background-color: #e7f3ff; border: 1px solid #b3d9ff; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                <strong>ℹ️ Hinweis:</strong> Zeigt die Anzahl zugewiesener Kochdienste pro Familie für das aktuelle Jahr. 
+                Neue Familien sind mit einem 🆕-Symbol markiert.
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Familie</th>
+                            <th>Erziehungsberechtigte</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: center;">Anzahl Dienste</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in familyStats %}
+                        <tr{% if stat.isNew %} style="background-color: #f0fff4;"{% endif %}>
+                            <td>
+                                <a href="{{ path('admin_party_show', {id: stat.party.id}) }}" style="text-decoration: none; color: #2c3e50;">
+                                    {% if stat.isNew %}
+                                        <span style="font-size: 1.1rem; margin-right: 0.25rem;">🆕</span>
+                                    {% endif %}
+                                    {{ stat.party.childrenNames }}
+                                </a>
+                            </td>
+                            <td>{{ stat.party.parentNames|join(', ') }}</td>
+                            <td style="text-align: center;">
+                                {% if stat.party.isSingleParent %}
+                                    <span style="background-color: #ffc107; color: #000; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                        1 Person
+                                    </span>
+                                {% else %}
+                                    <span style="background-color: #28a745; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">
+                                        2 Personen
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td style="text-align: center;">
+                                <span style="display: inline-block; background: {% if stat.isNew %}#28a745{% else %}#2c3e50{% endif %}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: bold;">
+                                    {{ stat.count }}
+                                </span>
+                                {% if stat.isNew %}
+                                    <div style="font-size: 0.7rem; color: #28a745; margin-top: 0.25rem;">NEU</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <h3 style="margin: 2rem 0 1rem 0;">Zugewiesene Kochdienste (Zeitlich)</h3>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Datum</th>
+                            <th>Wochentag</th>
+                            <th>Familie</th>
+                            <th>Typ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments|slice(0, 20) %}
+                        <tr>
+                            <td>{{ assignment.assignedDate|date('d.m.Y') }}</td>
+                            <td>{{ assignment.assignedDate|date('l')|trans }}</td>
+                            <td>{{ assignment.party.childrenNames }} <span style="color: #666; font-size: 0.9rem;">({{ assignment.party.parentNames|join(', ') }})</span></td>
+                            <td>
+                                {% if assignment.isManuallyAssigned %}
+                                    <span style="color: #856404;">Manuell</span>
+                                {% else %}
+                                    <span style="color: #666;">Automatisch</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if assignments|length > 20 %}
+                <p style="text-align: center; color: #666; margin-top: 1rem;">
+                    ... und {{ assignments|length - 20 }} weitere Zuweisungen
+                </p>
+            {% endif %}
+        {% else %}
+            <div style="text-align: center; padding: 3rem; background-color: #fff3cd; border-radius: 4px;">
+                <p style="margin: 0; color: #856404;">
+                    ℹ️ Noch keine Kochdienste zugewiesen. Klicken Sie auf "Kochplan neu generieren".
+                </p>
+            </div>
+        {% endif %}
+    {% else %}
+        <div style="text-align: center; padding: 3rem; background-color: #f8d7da; border-radius: 4px;">
+            <p style="margin: 0; color: #721c24;">
+                ⚠️ Kein aktives Kita-Jahr gefunden. Bitte erstellen Sie zuerst ein Kita-Jahr.
+            </p>
+        </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h3>Schnellzugriff</h3>
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+        <a href="{{ path('admin_party_index') }}" class="btn">👨‍👩‍👧 Familien verwalten</a>
+        <a href="{{ path('admin_kita_year_index') }}" class="btn">🗓️ Kita-Jahre verwalten</a>
+        <a href="{{ path('admin_holiday_index') }}" class="btn">🎉 Feiertage verwalten</a>
+        <a href="{{ path('admin_vacation_index') }}" class="btn">🏖️ Ferienzeiten verwalten</a>
+    </div>
+</div>
+{% endblock %}
