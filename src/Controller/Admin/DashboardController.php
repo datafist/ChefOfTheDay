@@ -97,6 +97,7 @@ class DashboardController extends AbstractController
             'familyStats' => $familyStats,
             'previousYearsDeletable' => $previousYearsDeletable,
             'newFamilies' => $newFamilies,
+            'today' => new \DateTime('today'),
         ]);
     }
 

@@ -32,10 +32,9 @@ class ChildType extends AbstractType
                 'attr' => ['placeholder' => '2019'],
                 'constraints' => [
                     new Assert\NotBlank(['message' => 'Das Geburtsjahr darf nicht leer sein.']),
-                    new Assert\Range([
-                        'min' => 2015,
-                        'max' => date('Y'),
-                        'notInRangeMessage' => 'Das Geburtsjahr muss zwischen {{ min }} und {{ max }} liegen.',
+                    new Assert\Type([
+                        'type' => 'integer',
+                        'message' => 'Das Geburtsjahr muss eine gültige Zahl sein.',
                     ]),
                 ],
             ])

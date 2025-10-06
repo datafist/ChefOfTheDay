@@ -88,19 +88,34 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// Funktion, die sowohl bei DOMContentLoaded als auch bei direktem Aufruf funktioniert
+(function initPartyForm() {
+    // Wenn DOM noch nicht geladen ist, warte darauf
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPartyForm);
+        return;
+    }
+    
     console.log('Party form script loaded');
     
     // Kinder-Collection
     const childrenCollection = document.getElementById('children-collection');
     const addChildButton = document.getElementById('add-child');
+    
+    if (!childrenCollection || !addChildButton) {
+        console.error('Required elements not found');
+        return;
+    }
+    
     let childIndex = parseInt(childrenCollection.dataset.index) || 0;
 
     console.log('Children collection:', childrenCollection);
     console.log('Child index:', childIndex);
     console.log('Child prototype:', childrenCollection.dataset.prototype);
 
-    if (addChildButton) {
+    // Event-Listener nur hinzufügen, wenn noch nicht vorhanden
+    if (!addChildButton.dataset.listenerAdded) {
+        addChildButton.dataset.listenerAdded = 'true';
         addChildButton.addEventListener('click', function() {
             console.log('Add child button clicked');
             
@@ -140,31 +155,41 @@ document.addEventListener('DOMContentLoaded', function() {
             childIndex++;
             console.log('Child added, new index:', childIndex);
         });
-    } else {
-        console.error('Add child button not found!');
     }
 
-    childrenCollection.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-child')) {
-            const currentCount = childrenCollection.querySelectorAll('.child-item').length;
-            if (currentCount <= 1) {
-                alert('Mindestens ein Kind muss angegeben werden.');
-                return;
+    // Event-Delegation für Remove-Buttons
+    if (!childrenCollection.dataset.removeListenerAdded) {
+        childrenCollection.dataset.removeListenerAdded = 'true';
+        childrenCollection.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-child')) {
+                const currentCount = childrenCollection.querySelectorAll('.child-item').length;
+                if (currentCount <= 1) {
+                    alert('Mindestens ein Kind muss angegeben werden.');
+                    return;
+                }
+                e.target.closest('.child-item').remove();
             }
-            e.target.closest('.child-item').remove();
-        }
-    });
+        });
+    }
 
     // Eltern-Collection
     const parentCollection = document.getElementById('parent-names-collection');
     const addParentButton = document.getElementById('add-parent');
+    
+    if (!parentCollection || !addParentButton) {
+        console.error('Parent elements not found');
+        return;
+    }
+    
     let parentIndex = parseInt(parentCollection.dataset.index) || 0;
 
     console.log('Parent collection:', parentCollection);
     console.log('Parent index:', parentIndex);
     console.log('Parent prototype:', parentCollection.dataset.prototype);
 
-    if (addParentButton) {
+    // Event-Listener nur hinzufügen, wenn noch nicht vorhanden
+    if (!addParentButton.dataset.listenerAdded) {
+        addParentButton.dataset.listenerAdded = 'true';
         addParentButton.addEventListener('click', function() {
             console.log('Add parent button clicked');
             
@@ -195,20 +220,22 @@ document.addEventListener('DOMContentLoaded', function() {
             parentIndex++;
             console.log('Parent added, new index:', parentIndex);
         });
-    } else {
-        console.error('Add parent button not found!');
     }
 
-    parentCollection.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-parent')) {
-            const currentCount = parentCollection.querySelectorAll('.parent-name-item').length;
-            if (currentCount <= 1) {
-                alert('Mindestens ein Elternteil muss angegeben werden.');
-                return;
+    // Event-Delegation für Remove-Buttons
+    if (!parentCollection.dataset.removeListenerAdded) {
+        parentCollection.dataset.removeListenerAdded = 'true';
+        parentCollection.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-parent')) {
+                const currentCount = parentCollection.querySelectorAll('.parent-name-item').length;
+                if (currentCount <= 1) {
+                    alert('Mindestens ein Elternteil muss angegeben werden.');
+                    return;
+                }
+                e.target.closest('.parent-name-item').remove();
             }
-            e.target.closest('.parent-name-item').remove();
-        }
-    });
-});
+        });
+    }
+})(); // Sofort ausführen
 </script>
 {% endblock %}

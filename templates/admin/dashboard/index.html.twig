@@ -7,19 +7,19 @@
     <h2>Admin Dashboard</h2>
     
     {% if activeKitaYear %}
-        <div style="background-color: #f8f9fa; border-left: 4px solid #2c3e50; padding: 1rem; margin: 1rem 0;">
-            <h3 style="margin: 0 0 0.5rem 0; font-size: 1.1rem;">Aktives Kita-Jahr: {{ activeKitaYear.yearString }}</h3>
-            <p style="margin: 0; color: #666;">
+        <div class="info-box info-box-primary">
+            <h3>Aktives Kita-Jahr: {{ activeKitaYear.yearString }}</h3>
+            <p class="text-muted">
                 {{ activeKitaYear.startDate|date('d.m.Y') }} - {{ activeKitaYear.endDate|date('d.m.Y') }}
             </p>
         </div>
 
         {% if previousYearsDeletable|length > 0 %}
-            <div class="alert alert-warning" style="background-color: #fff3cd; border: 1px solid #ffc107; border-left: 4px solid #ffc107; padding: 1rem; margin: 1rem 0;">
-                <h3 style="margin: 0 0 0.5rem 0; font-size: 1rem; color: #856404;">
+            <div class="info-box info-box-warning">
+                <h3 class="text-warning">
                     🗑️ Vorjahr kann gelöscht werden
                 </h3>
-                <p style="margin: 0 0 0.75rem 0; color: #856404;">
+                <p class="text-warning mb-md">
                     Der Kochplan für {{ activeKitaYear.yearString }} wurde generiert. 
                     {% if previousYearsDeletable|length == 1 %}
                         Das folgende Vorjahr kann jetzt gelöscht werden:
@@ -27,25 +27,25 @@
                         Die folgenden Vorjahre können jetzt gelöscht werden:
                     {% endif %}
                 </p>
-                <ul style="margin: 0.5rem 0 0.75rem 1.5rem; color: #856404;">
+                <ul class="text-warning">
                     {% for year in previousYearsDeletable %}
                         <li><strong>{{ year.yearString }}</strong> ({{ year.startDate|date('d.m.Y') }} - {{ year.endDate|date('d.m.Y') }})</li>
                     {% endfor %}
                 </ul>
-                <a href="{{ path('admin_kita_year_index') }}" class="btn" style="background-color: #ffc107; color: #000; border: 1px solid #ffc107;">
+                <a href="{{ path('admin_kita_year_index') }}" class="btn btn-warning">
                     Zu den Kita-Jahren →
                 </a>
             </div>
         {% endif %}
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1.5rem 0;">
-            <div style="text-align: center; background-color: #f8f9fa; border: 1px solid #ddd; padding: 1.5rem; border-radius: 4px;">
-                <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">Zugewiesene Kochdienste</h4>
-                <div style="font-size: 2rem; font-weight: bold; color: #2c3e50;">{{ totalAssignments }}</div>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h4>Zugewiesene Kochdienste</h4>
+                <div class="stat-number">{{ totalAssignments }}</div>
             </div>
         </div>
 
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem;">
+        <div class="btn-group mb-xl">
             <form method="post" action="{{ path('admin_generate_plan') }}" onsubmit="return confirm('Möchten Sie wirklich einen neuen Kochplan generieren? Alle bisherigen Zuweisungen werden gelöscht!');">
                 <input type="hidden" name="_token" value="{{ csrf_token('generate-plan') }}">
                 <button type="submit" class="btn btn-success">
@@ -142,7 +142,7 @@
 
             <h3 style="margin: 2rem 0 1rem 0;">Zugewiesene Kochdienste (Zeitlich)</h3>
             <div class="table-wrapper">
-                <table>
+                <table id="assignments-table">
                     <thead>
                         <tr>
                             <th>Datum</th>
@@ -152,9 +152,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for assignment in assignments|slice(0, 20) %}
-                        <tr>
-                            <td>{{ assignment.assignedDate|date('d.m.Y') }}</td>
+                        {% for assignment in assignments %}
+                        {% set isToday = assignment.assignedDate|date('Y-m-d') == today|date('Y-m-d') %}
+                        <tr class="assignment-row{% if isToday %} table-today-row{% endif %}" data-index="{{ loop.index }}"{% if loop.index > 20 %} style="display: none;"{% endif %}>
+                            <td>{{ assignment.assignedDate|date('d.m.Y') }}{% if isToday %} <span style="font-size: 1.1rem;">📅</span>{% endif %}</td>
                             <td>{{ assignment.assignedDate|date('l')|trans }}</td>
                             <td>{{ assignment.party.childrenNames }} <span style="color: #666; font-size: 0.9rem;">({{ assignment.party.parentNames|join(', ') }})</span></td>
                             <td>
@@ -171,9 +172,52 @@
             </div>
             
             {% if assignments|length > 20 %}
-                <p style="text-align: center; color: #666; margin-top: 1rem;">
-                    ... und {{ assignments|length - 20 }} weitere Zuweisungen
+                <p style="text-align: center; margin-top: 1rem;">
+                    <button id="toggle-assignments-btn" class="btn" style="background-color: #007bff; color: white;" onclick="toggleAssignments()">
+                        <span id="btn-text-show">... und {{ assignments|length - 20 }} weitere Zuweisungen anzeigen</span>
+                        <span id="btn-text-hide" style="display: none;">Weniger anzeigen</span>
+                    </button>
                 </p>
+                
+                <script>
+                let isExpanded = false;
+                
+                function toggleAssignments() {
+                    const allRows = document.querySelectorAll('.assignment-row[data-index]');
+                    const showText = document.getElementById('btn-text-show');
+                    const hideText = document.getElementById('btn-text-hide');
+                    const btn = document.getElementById('toggle-assignments-btn');
+                    
+                    if (isExpanded) {
+                        // Verstecke zusätzliche Zeilen (alles über Index 20)
+                        allRows.forEach(row => {
+                            const index = parseInt(row.getAttribute('data-index'));
+                            if (index > 20) {
+                                row.style.display = 'none';
+                            }
+                        });
+                        showText.style.display = 'inline';
+                        hideText.style.display = 'none';
+                        btn.style.backgroundColor = '#007bff';
+                        isExpanded = false;
+                        
+                        // Scrolle zum Anfang der Tabelle
+                        document.getElementById('assignments-table').scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'start' 
+                        });
+                    } else {
+                        // Zeige alle Zeilen
+                        allRows.forEach(row => {
+                            row.style.display = 'table-row';
+                        });
+                        showText.style.display = 'none';
+                        hideText.style.display = 'inline';
+                        btn.style.backgroundColor = '#6c757d';
+                        isExpanded = true;
+                    }
+                }
+                </script>
             {% endif %}
         {% else %}
             <div style="text-align: center; padding: 3rem; background-color: #fff3cd; border-radius: 4px;">
