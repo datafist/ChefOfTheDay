@@ -644,7 +644,7 @@ class LargeScaleTestFixtures extends Fixture implements FixtureGroupInterface
             $assignmentsByParty[$partyId][] = $assignment;
         }
         
-        // Für jede Familie: finde letztes Assignment
+        // Für jede Familie: finde letztes Assignment und zähle Anzahl
         foreach ($families as $party) {
             $partyId = $party->getId();
             
@@ -652,20 +652,23 @@ class LargeScaleTestFixtures extends Fixture implements FixtureGroupInterface
                 // Familie hat keine Zuweisungen erhalten - erstelle einen simulierten Eintrag
                 // aus dem Vorjahr (Sommer 2024)
                 $lastDate = new \DateTimeImmutable('2024-08-' . (15 + ($partyId % 10)));
+                $cookingCount = 0;
             } else {
                 // Sortiere Assignments nach Datum
                 $partyAssignments = $assignmentsByParty[$partyId];
                 usort($partyAssignments, fn($a, $b) => $a->getAssignedDate() <=> $b->getAssignedDate());
                 
-                // Nimm das letzte Assignment
+                // Nimm das letzte Assignment und zähle Anzahl
                 $lastAssignment = end($partyAssignments);
                 $lastDate = $lastAssignment->getAssignedDate();
+                $cookingCount = count($partyAssignments);
             }
             
             $lastYearCooking = new LastYearCooking();
             $lastYearCooking->setParty($party);
             $lastYearCooking->setKitaYear($kitaYear);
             $lastYearCooking->setLastCookingDate($lastDate);
+            $lastYearCooking->setCookingCount($cookingCount);
             
             $manager->persist($lastYearCooking);
         }

@@ -483,16 +483,21 @@ class DashboardController extends AbstractController
                 'weeks' => []
             ];
 
-            // Erstelle Wochen-Struktur
+            // Erstelle Wochen-Struktur nur für Tage des aktuellen Monats
             $firstDayOfMonth = new \DateTimeImmutable($monthStart->format('Y-m-01'));
             $lastDayOfMonth = new \DateTimeImmutable($monthStart->format('Y-m-t'));
             
-            // Starte mit Montag der ersten Woche
-            $isoWeekday = (int)$firstDayOfMonth->format('N');
-            $currentDate = $firstDayOfMonth->modify('-' . ($isoWeekday - 1) . ' days');
-            
+            $currentDate = $firstDayOfMonth;
             $week = [];
-            while ($currentDate <= $lastDayOfMonth->modify('+7 days')) {
+            
+            // Fülle erste Woche mit leeren Tagen bis zum 1. des Monats
+            $firstDayWeekday = (int)$firstDayOfMonth->format('N'); // 1=Mo, 7=So
+            for ($i = 1; $i < $firstDayWeekday; $i++) {
+                $week[] = null;
+            }
+            
+            // Iteriere nur über Tage des aktuellen Monats
+            while ($currentDate <= $lastDayOfMonth) {
                 $dateKey = $currentDate->format('Y-m-d');
                 $dayOfWeek = (int)$currentDate->format('N');
                 
@@ -506,7 +511,7 @@ class DashboardController extends AbstractController
                 $dayData = [
                     'date' => $currentDate->format('Y-m-d'),
                     'day' => (int)$currentDate->format('j'),
-                    'isCurrentMonth' => $currentDate->format('m') === $monthStart->format('m'),
+                    'isCurrentMonth' => true, // Immer true, da wir nur aktuelle Monatstage anzeigen
                     'assignment' => $assignmentsByDate[$dateKey] ?? null,
                     'isExcluded' => $isExcluded,
                     'excludeReason' => $excludeReason,
@@ -514,6 +519,7 @@ class DashboardController extends AbstractController
                 
                 $week[] = $dayData;
                 
+                // Wenn Sonntag erreicht, speichere Woche und starte neue
                 if ($dayOfWeek === 7) {
                     $monthData['weeks'][] = $week;
                     $week = [];
@@ -522,8 +528,8 @@ class DashboardController extends AbstractController
                 $currentDate = $currentDate->modify('+1 day');
             }
             
+            // Letzte unvollständige Woche mit null auffüllen
             if (!empty($week)) {
-                // Fülle letzte Woche mit null auf
                 while (count($week) < 7) {
                     $week[] = null;
                 }
