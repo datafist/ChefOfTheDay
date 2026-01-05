@@ -70,6 +70,9 @@ RUN chown -R www-data:www-data var/ public/
 # ===== Production Stage =====
 FROM base AS production
 
+# Log-Verzeichnisse erstellen
+RUN mkdir -p /var/log/supervisor /var/log/nginx
+
 # Nginx Konfiguration
 COPY docker/nginx/default.conf /etc/nginx/http.d/default.conf
 
