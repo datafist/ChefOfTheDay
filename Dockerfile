@@ -54,6 +54,11 @@ RUN composer dump-autoload --optimize --no-dev \
     && composer run-script post-install-cmd --no-interaction || true
 
 # ImportMap Dependencies installieren und Assets kompilieren
+# Dummy DATABASE_URL für Build-Zeit (wird zur Laufzeit überschrieben)
+ENV DATABASE_URL="mysql://dummy:dummy@localhost:3306/dummy?serverVersion=8.0"
+ENV APP_ENV=prod
+ENV APP_SECRET=build-time-secret
+
 RUN php bin/console importmap:install --env=prod \
     && php bin/console asset-map:compile --env=prod \
     && php bin/console cache:clear --env=prod \
