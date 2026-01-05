@@ -53,8 +53,9 @@ COPY . .
 RUN composer dump-autoload --optimize --no-dev \
     && composer run-script post-install-cmd --no-interaction || true
 
-# Assets kompilieren (falls vorhanden)
-RUN php bin/console asset-map:compile --env=prod || true \
+# ImportMap Dependencies installieren und Assets kompilieren
+RUN php bin/console importmap:install --env=prod \
+    && php bin/console asset-map:compile --env=prod \
     && php bin/console cache:clear --env=prod \
     && php bin/console cache:warmup --env=prod
 
