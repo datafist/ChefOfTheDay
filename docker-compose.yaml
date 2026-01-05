@@ -1,0 +1,106 @@
+# Production Docker Compose für Symfony Kochdienst-App
+# Verwendet externes Traefik-Netzwerk für SSL-Terminierung
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: kochdienst-app
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@database:3306/${MYSQL_DATABASE}?serverVersion=8.0&charset=utf8mb4
+      MESSENGER_TRANSPORT_DSN: doctrine://default?auto_setup=0
+      MAILER_DSN: ${MAILER_DSN:-null://null}
+      # Trusted Proxies für Traefik
+      TRUSTED_PROXIES: 172.16.0.0/12,192.168.0.0/16,10.0.0.0/8
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-^localhost|kochdienst\.florianbirkenberger\.de$$}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - web
+      - internal
+    labels:
+      # Traefik aktivieren
+      - "traefik.enable=true"
+      - "traefik.docker.network=web"
+      
+      # HTTPS Router
+      - "traefik.http.routers.kochdienst.rule=Host(`kochdienst.florianbirkenberger.de`)"
+      - "traefik.http.routers.kochdienst.entrypoints=websecure"
+      - "traefik.http.routers.kochdienst.tls.certresolver=letsencrypt"
+      
+      # Service Definition
+      - "traefik.http.services.kochdienst.loadbalancer.server.port=80"
+      
+      # Security Headers Middleware
+      - "traefik.http.routers.kochdienst.middlewares=kochdienst-headers"
+      - "traefik.http.middlewares.kochdienst-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.kochdienst-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.kochdienst-headers.headers.stsPreload=true"
+    volumes:
+      # Persistente Logs (optional)
+      - app_logs:/var/www/html/var/log
+
+  database:
+    image: mysql:8.0
+    container_name: kochdienst-db
+    restart: unless-stopped
+    command: 
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - database_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Optional: Migrations und Setup beim ersten Start
+  migrations:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: kochdienst-migrations
+    environment:
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET}
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@database:3306/${MYSQL_DATABASE}?serverVersion=8.0&charset=utf8mb4
+    command: >
+      sh -c "
+        echo 'Waiting for database...' &&
+        sleep 10 &&
+        php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration &&
+        echo 'Migrations completed successfully'
+      "
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: "no"
+
+networks:
+  web:
+    external: true  # Externes Traefik-Netzwerk
+  internal:
+    driver: bridge  # Internes Netzwerk für DB-Kommunikation
+
+volumes:
+  database_data:
+  app_logs:

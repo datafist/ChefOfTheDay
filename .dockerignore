@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+
+# Docker
+docker-compose*.yaml
+compose*.yaml
+Dockerfile*
+.dockerignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Node (falls vorhanden)
+node_modules
+
+# Symfony Development
+var/cache/*
+var/log/*
+!var/cache/.gitkeep
+!var/log/.gitkeep
+
+# Environment Files (Production wird über ENV gesetzt)
+.env.local
+.env.*.local
+.env.prod
+
+# Tests
+tests
+phpunit.xml
+phpunit.dist.xml
+.phpunit.result.cache
+
+# Dokumentation
+*.md
+!README.md
+docs
+
+# Sonstige
+.DS_Store
+Thumbs.db
