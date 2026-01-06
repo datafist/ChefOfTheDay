@@ -70,11 +70,7 @@ Nach dem ersten Start werden die Migrationen automatisch ausgeführt.
 docker compose exec app php bin/console app:setup-admin
 ```
 
-### Optional: Demo-Daten laden
-
-```bash
-docker compose exec app php bin/console doctrine:fixtures:load --no-interaction
-```
+> **Hinweis:** Demo-Daten (`doctrine:fixtures:load`) sind in Production nicht verfügbar, da das FixturesBundle nur für die Entwicklung installiert wird.
 
 ## Wichtige Befehle
 
