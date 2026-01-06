@@ -42,22 +42,26 @@ composer install
 
 # 3. MySQL starten (via Docker)
 docker compose -f docker-compose.dev.yaml up -d
+# Warten bis MySQL bereit ist (ca. 10-30 Sekunden beim ersten Start)
+sleep 10
 
-# 4. Datenbank einrichten
-php bin/console doctrine:database:create
-php bin/console doctrine:migrations:migrate
+# 4. Datenbank einrichten (Datenbank wird vom Container erstellt)
+php bin/console doctrine:migrations:migrate --no-interaction
 
-# 5. Demo-Daten laden (optional)
+# 5. Admin-Benutzer erstellen
+php bin/console app:setup-admin
+
+# 6. Demo-Daten laden (optional, erstellt auch Admin)
 php bin/console doctrine:fixtures:load
 
-# 6. Assets installieren
+# 7. Assets installieren
 php bin/console importmap:install
 
-# 7. Server starten
+# 8. Server starten
 symfony server:start
 # oder: php -S localhost:8000 -t public/
 
-# 8. Browser öffnen
+# 9. Browser öffnen
 open http://localhost:8000
 ```
 
