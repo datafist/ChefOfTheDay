@@ -1,45 +1,6 @@
 # Kochdienst-Verwaltungs-App für Kita
 
-Eine Symfony 6.4 LTS Webanwendung zur gerecht   ```
-
-## 📧 Email-System
-
-### SMTP-Konfiguration
-
-Konfigurieren Sie Ihre echten SMTP-Zugangsdaten in `.env.local`:
-
-```bash
-# Gmail (App-Passwort erforderlich!)
-MAILER_DSN=gmail+smtp://ihre-email@gmail.com:app-passwort@default
-
-# GMX
-MAILER_DSN=smtp://ihre-email@gmx.de:passwort@mail.gmx.net:587?encryption=tls
-
-# Kasserver
-MAILER_DSN=smtp://ihre-email@ihre-domain.de:passwort@mail.kasserver.com:465?encryption=ssl
-
-# Eigener SMTP-Server
-MAILER_DSN=smtp://benutzer:passwort@mail.ihre-domain.de:587?encryption=tls
-
-# Entwicklung ohne Versand
-MAILER_DSN=null://null
-```
-
-### E-Mail-Test
-
-Testen Sie Ihre Konfiguration **ohne echte Benachrichtigungen zu versenden**:
-
-1. **Im Admin-Interface:** Navigation → **E-Mail-Test**
-   - Geben Sie Ihre Test-E-Mail-Adresse ein
-   - Klicken Sie auf "Test-E-Mail senden"
-   - Prüfen Sie Ihr Postfach (auch Spam-Ordner)
-
-2. **Via CLI:**
-   ```bash
-   php bin/console app:test-email ihre-email@example.com
-   ```
-
-### Email-Featuresg von Kochdiensten in einer Kindertagesstätte.
+Eine Symfony 6.4 LTS Webanwendung zur gerechten Verteilung von Kochdiensten in einer Kindertagesstätte.
 
 ## 🎯 Features
 
@@ -56,103 +17,104 @@ Testen Sie Ihre Konfiguration **ohne echte Benachrichtigungen zu versenden**:
 - **Database**: MySQL 8.0 mit Doctrine ORM
 - **Frontend**: Twig Templates, Stimulus JS, Symfony UX Components
 - **Security**: Symfony Security Bundle
+- **Production**: Docker, Traefik, Let's Encrypt
 
-## 🚀 Installation
+---
+
+## 🚀 Lokale Entwicklung
 
 ### Voraussetzungen
 
 - PHP 8.1 oder höher
 - Composer
-- MySQL 8.0
+- Docker (für MySQL) oder lokale MySQL-Installation
 - (Optional) Symfony CLI
 
-### Setup
+### Quick Start
 
-1. **Repository klonen**
-   ```bash
-   git clone <repository-url>
-   cd ChefOfTheDay_symfony_mysql
-   ```
-
-2. **Dependencies installieren**
-   ```bash
-   composer install
-   ```
-
-3. **Datenbank konfigurieren**
-   
-   Bearbeite `.env` und setze deine Datenbankverbindung:
-   ```
-   DATABASE_URL="mysql://user:password@127.0.0.1:3306/kochdienst?serverVersion=8.0&charset=utf8mb4"
-   ```
-
-4. **Datenbank erstellen und Migrations ausführen**
-   ```bash
-   php bin/console doctrine:database:create
-   php bin/console doctrine:migrations:migrate
-   ```
-
-5. **Demo-Daten laden**
-   
-   **Option A: Einfache Demo (6 Familien)**
-   ```bash
-   php bin/console doctrine:fixtures:load
-   ```
-   
-   **Option B: Umfangreicher Test (49 Familien, realistische Verfügbarkeiten)**
-   ```bash
-   php bin/console doctrine:fixtures:load --group=large-scale
-   ```
-   
-   ℹ️ Admin-Login: `admin@kita.local` / `admin123`
-
-6. **Asset Mapper kompilieren**
-   ```bash
-   php bin/console importmap:install
-   ```
-
-7. **Development Server starten**
-   ```bash
-   symfony server:start
-   # oder
-   php -S localhost:8000 -t public/
-   ```
-
-8. **Öffne im Browser**
-   ```
-      http://localhost:8000
-   ```
-
-## 📚 Datenmodell
-   ```
-
-## � Email-System
-
-Das Email-System ist vollständig konfiguriert und verwendet **Mailpit** für lokale Entwicklung:
-
-### Mailpit (Development)
-- Web-Interface: http://localhost:56257
-- SMTP: localhost:56256
-- Alle Emails werden abgefangen und im Web-Interface angezeigt
-
-### Email-Features
-1. **Kochplan-Benachrichtigung**: Automatisch beim Generieren des Plans
-2. **Erinnerungen**: 
-   ```bash
-   # 3 Tage vorher (Standard)
-   php bin/console app:send-reminders
-   
-   # 7 Tage vorher
-   php bin/console app:send-reminders 7
-   ```
-
-### Cronjob einrichten (Production)
 ```bash
-# Täglich um 9:00 Uhr Erinnerungen für Kochdienste in 3 Tagen
-0 9 * * * cd /path/to/project && php bin/console app:send-reminders 3
+# 1. Repository klonen
+git clone <repository-url>
+cd ChefOfTheDay
+
+# 2. Dependencies installieren
+composer install
+
+# 3. MySQL starten (via Docker)
+docker compose -f docker-compose.dev.yaml up -d
+
+# 4. Datenbank einrichten
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+
+# 5. Demo-Daten laden (optional)
+php bin/console doctrine:fixtures:load
+
+# 6. Assets installieren
+php bin/console importmap:install
+
+# 7. Server starten
+symfony server:start
+# oder: php -S localhost:8000 -t public/
+
+# 8. Browser öffnen
+open http://localhost:8000
 ```
 
-## �📚 Datenmodell
+### Datenbank-Konfiguration
+
+Die `.env` Datei enthält bereits die Standard-Konfiguration für die lokale Entwicklung:
+
+```env
+DATABASE_URL="mysql://kochdienst:kochdienst@127.0.0.1:3306/kochdienst?serverVersion=8.0&charset=utf8mb4"
+```
+
+### MySQL stoppen/starten
+
+```bash
+# Starten
+docker compose -f docker-compose.dev.yaml up -d
+
+# Stoppen
+docker compose -f docker-compose.dev.yaml down
+
+# Stoppen und Daten löschen
+docker compose -f docker-compose.dev.yaml down -v
+```
+
+### Demo-Daten
+
+**Standard (6 Familien):**
+```bash
+php bin/console doctrine:fixtures:load
+```
+
+**Umfangreich (49 Familien):**
+```bash
+php bin/console doctrine:fixtures:load --group=large-scale
+```
+
+**Admin-Login:** `admin` / `admin123`
+
+---
+
+## 🐳 Production Deployment
+
+Siehe [DEPLOYMENT.md](DEPLOYMENT.md) für die vollständige Anleitung zum Deployment auf einem VPS mit Docker und Traefik.
+
+**Kurzversion:**
+```bash
+# Auf dem Server
+git clone <repository-url> /opt/ChefOfTheDay
+cd /opt/ChefOfTheDay
+docker compose build
+docker compose up -d
+docker compose exec app php bin/console app:setup-admin
+```
+
+---
+
+## 📚 Datenmodell
 
 ### Entities
 

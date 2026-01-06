@@ -1,5 +1,19 @@
 # Deployment auf Hostinger VPS mit Traefik
 
+> **💡 Lokale Entwicklung?** Siehe [README.md](README.md#-lokale-entwicklung) für die Anleitung zur lokalen Entwicklung mit PHP und MySQL.
+
+Diese Anleitung beschreibt das Production-Deployment auf einem VPS mit Docker und Traefik als Reverse Proxy für SSL/Let's Encrypt.
+
+## Übersicht
+
+| Komponente | Details |
+|------------|---------|
+| **Domain** | `kochdienst.florianbirkenberger.de` |
+| **Reverse Proxy** | Traefik v2.11 |
+| **SSL** | Let's Encrypt (automatisch via Traefik) |
+| **Container** | PHP 8.2 FPM + Nginx + Supervisor |
+| **Datenbank** | MySQL 8.0 |
+
 ## Voraussetzungen
 
 - VPS mit Docker und Docker Compose installiert
