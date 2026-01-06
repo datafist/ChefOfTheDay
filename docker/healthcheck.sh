@@ -14,6 +14,6 @@ if ! pidof php-fpm > /dev/null; then
 fi
 
 # HTTP Health Check
-wget -q -O /dev/null http://localhost/health || exit 1
+wget -q -O /dev/null http://127.0.0.1/health || exit 1
 
 exit 0
