@@ -34,25 +34,27 @@ cd kochdienst
 
 ```bash
 # Beispiel-Datei kopieren
-cp .env.prod.example .env.prod
+cp .env.example .env
 
-# Sichere Passwörter generieren
+# Sichere Passwörter generieren und eintragen
 echo "APP_SECRET=$(openssl rand -hex 32)"
 echo "MYSQL_ROOT_PASSWORD=$(openssl rand -base64 24)"
 echo "MYSQL_PASSWORD=$(openssl rand -base64 24)"
 
-# .env.prod mit den generierten Werten bearbeiten
-nano .env.prod
+# .env mit den generierten Werten bearbeiten
+nano .env
 ```
+
+> ⚠️ **Wichtig:** Die `.env` Datei ist in `.gitignore` und wird NICHT ins Repository committed!
 
 ## Schritt 3: Container bauen und starten
 
 ```bash
 # Image bauen
-docker compose --env-file .env.prod build
+docker compose build
 
 # Container starten
-docker compose --env-file .env.prod up -d
+docker compose up -d
 
 # Logs überprüfen
 docker compose logs -f
@@ -119,8 +121,8 @@ cd /opt/apps/kochdienst
 git pull
 
 # Container neu bauen und starten
-docker compose --env-file .env.prod build
-docker compose --env-file .env.prod up -d
+docker compose build
+docker compose up -d
 
 # Migrationen ausführen (falls nötig)
 docker compose exec app php bin/console doctrine:migrations:migrate --no-interaction
@@ -174,7 +176,7 @@ docker network inspect web
 
 ## Sicherheitshinweise
 
-1. **Niemals** `.env.prod` ins Repository committen
+1. **Die `.env` Datei ist in `.gitignore`** - niemals manuell committen!
 2. Regelmäßige Datenbank-Backups erstellen
 3. Docker und alle Images regelmäßig updaten
 4. Firewall auf dem VPS konfigurieren (nur 80/443 von außen)
