@@ -87,10 +87,11 @@ services:
         echo 'Waiting for database...' &&
         sleep 10 &&
         
-        # Prüfe ob Tabellen existieren (Neuinstallation vs Update)
-        TABLE_COUNT=\$$(php bin/console doctrine:query:sql 'SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = \"${MYSQL_DATABASE}\"' 2>/dev/null | grep -o '[0-9]*' | head -1 || echo '0') &&
+        # Migrations-Tabelle initialisieren
+        php bin/console doctrine:migrations:sync-metadata-storage --no-interaction &&
         
-        if [ \"\$$TABLE_COUNT\" -le 1 ]; then
+        # Prüfe ob App-Tabellen existieren (user-Tabelle als Indikator)
+        if ! php bin/console doctrine:query:sql 'SELECT 1 FROM user LIMIT 1' 2>/dev/null; then
           echo '=== Neuinstallation erkannt - Erstelle Schema ===' &&
           php bin/console doctrine:schema:create --no-interaction &&
           php bin/console doctrine:migrations:version --add --all --no-interaction &&
