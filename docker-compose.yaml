@@ -39,6 +39,7 @@ services:
       - "traefik.http.routers.kochdienst.rule=Host(`kochdienst.florianbirkenberger.de`)"
       - "traefik.http.routers.kochdienst.entrypoints=websecure"
       - "traefik.http.routers.kochdienst.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.kochdienst.service=kochdienst"
       
       # Service Definition
       - "traefik.http.services.kochdienst.loadbalancer.server.port=80"
