@@ -14,7 +14,8 @@ RUN apk add --no-cache \
     intl \
     pdo_mysql \
     zip \
-    opcache
+    opcache \
+    calendar
 
 # OPcache Konfiguration für Production
 RUN { \
