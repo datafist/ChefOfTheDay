@@ -28,3 +28,4 @@ Symfony LTS Anwendung zur gerechten Verteilung von Kochdiensten in einer Kita.
 5. Server starten: `symfony server:start` oder `php -S localhost:8000 -t public/`
 6. Im Browser öffnen: http://localhost:8000
 7. Admin-Login: admin / admin123 (Username statt E-Mail!)
+   ⚠️ **WICHTIG:** Passwort sofort nach erstem Login ändern: `php bin/console app:setup-admin`

@@ -18,7 +18,7 @@ Die Absender-Adresse muss **mit Ihrem SMTP-Login übereinstimmen**.
 
 ```yaml
 parameters:
-    mailer.from_email: 'kopfnicker@gmx.net'  # Ihre echte E-Mail!
+    mailer.from_email: 'ihre-email@example.com'  # Ihre echte E-Mail!
     mailer.from_name: 'Kita Kochdienst'
 ```
 

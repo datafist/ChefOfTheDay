@@ -249,6 +249,7 @@ class LargeScaleTestFixtures extends Fixture implements FixtureGroupInterface
         echo "🎯 TEST-SZENARIO:\n";
         echo "   1. In Browser öffnen: http://localhost:8000\n";
         echo "   2. Als Admin einloggen (admin / admin123)\n";
+        echo "      ⚠️  WICHTIG: Passwort nach erstem Login ändern!\n";
         echo "   3. Kochplan für 25/26 generieren\n";
         echo "   4. Prüfen:\n";
         echo "      ✓ Werden Altdaten (LastYearCooking) von bestehenden Familien berücksichtigt?\n";

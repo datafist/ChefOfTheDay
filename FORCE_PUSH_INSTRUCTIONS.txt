@@ -1,0 +1,121 @@
+================================================================================
+  🚨 GIT FORCE PUSH ERFORDERLICH - WICHTIGE ANWEISUNGEN 🚨
+================================================================================
+
+Die Git-History wurde lokal bereinigt, um sensible Credentials zu entfernen.
+Um die Änderungen auf GitHub zu übertragen, muss ein FORCE PUSH durchgeführt werden.
+
+⚠️  WARNUNG: Force Push überschreibt die Remote-History!
+⚠️  Alle Collaborators müssen danach das Repository neu clonen!
+
+================================================================================
+SCHRITT 1: PRÜFUNG VOR DEM PUSH
+================================================================================
+
+1. Verifiziere dass .env aus History entfernt wurde:
+   
+   git log --all --full-history -- .env
+   
+   ➜ Sollte KEINE Ergebnisse liefern
+
+2. Verifiziere dass alte Secrets weg sind:
+   
+   git log --all -S "d1fe1fb898462381e0b42d295d3960fd"
+   
+   ➜ Sollte KEINE Ergebnisse liefern
+
+3. Prüfe Anzahl der Commits:
+   
+   git log --oneline | wc -l
+   
+   ➜ Sollte 25 Commits zeigen (vorher: 26)
+
+================================================================================
+SCHRITT 2: FORCE PUSH DURCHFÜHREN
+================================================================================
+
+Führe folgende Befehle aus:
+
+# Push alle Branches mit Force
+git push origin --force --all
+
+# Push alle Tags mit Force
+git push origin --force --tags
+
+================================================================================
+SCHRITT 3: NACH DEM PUSH
+================================================================================
+
+1. GitHub-Repository prüfen:
+   - Gehe zu: https://github.com/datafist/ChefOfTheDay
+   - Prüfe ob der neueste Commit "fix: Update domain references..." ist
+   - Commit-Hash sollte sein: 728939b
+
+2. Informiere alle Collaborators (falls vorhanden):
+   - Sie MÜSSEN das Repository neu clonen
+   - Oder: git fetch origin && git reset --hard origin/main
+
+3. Prüfe ob alte .env noch auf Remote zu finden ist:
+   - GitHub → Repository → History durchsuchen
+   - Suche nach ".env" → sollte nicht mehr auftauchen
+
+================================================================================
+SCHRITT 4: LOKALE DATENBANK AKTUALISIEREN
+================================================================================
+
+Da die MySQL-Passwörter geändert wurden:
+
+# Option 1: Container neu erstellen mit neuen Credentials
+docker compose -f docker-compose.dev.yaml down -v
+docker compose -f docker-compose.dev.yaml up -d
+
+# Option 2: In laufender MySQL-Datenbank Passwort ändern
+docker compose -f docker-compose.dev.yaml exec database mysql -uroot -proot
+> ALTER USER 'root'@'localhost' IDENTIFIED BY '3whgTeTUACVWpHMeUvpKeTqUbixvMM48';
+> ALTER USER 'kochdienst'@'%' IDENTIFIED BY '2nTwu2TS4Qpa3w/7FhjKOdrCHWzF+LML';
+> FLUSH PRIVILEGES;
+> EXIT;
+
+================================================================================
+SCHRITT 5: ADMIN-PASSWORT ÄNDERN
+================================================================================
+
+php bin/console app:setup-admin
+
+Wähle ein sicheres Passwort (NICHT "admin123")!
+
+================================================================================
+BACKUP-WIEDERHERSTELLUNG (Falls etwas schief geht)
+================================================================================
+
+Falls du die Änderungen rückgängig machen musst:
+
+# Zurück zur alten History (VOR der Bereinigung)
+git reset --hard backup-before-cleanup-20260107-193058
+
+# Backup-Tag entfernen
+git tag -d backup-before-cleanup-20260107-193058
+
+================================================================================
+ZUSAMMENFASSUNG
+================================================================================
+
+✅ Durchgeführt:
+   - Git-History bereinigt (.env entfernt)
+   - Neue sichere Credentials generiert
+   - Sicherheitswarnungen in Dokumentation eingefügt
+   - SECURITY_NOTICE.md erstellt
+   - Backup-Tag erstellt
+
+⏳ Noch zu tun:
+   1. Force Push auf GitHub (siehe SCHRITT 2 oben)
+   2. Datenbank-Credentials aktualisieren
+   3. Admin-Passwort ändern
+   4. Ggf. Collaborators informieren
+
+📄 Dokumentation:
+   - SECURITY_NOTICE.md → Details zur Bereinigung
+   - DEPLOYMENT.md → Production-Setup
+   - README.md → Lokale Entwicklung
+
+================================================================================

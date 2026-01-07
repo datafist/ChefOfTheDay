@@ -27,13 +27,13 @@ Emails werden **MANUELL** über einen Button im Admin-Dashboard versendet:
 
 ### 1. SMTP-Zugangsdaten (`.env.local`)
 ```bash
-MAILER_DSN=smtp://kopfnicker@gmx.net:passwort@smtp.gmx.net:587?encryption=tls
+MAILER_DSN=smtp://ihre-email@gmx.net:ihr-passwort@smtp.gmx.net:587?encryption=tls
 ```
 
 ### 2. Absender-Konfiguration (`config/packages/mailer.yaml`)
 ```yaml
 parameters:
-    mailer.from_email: 'kopfnicker@gmx.net'
+    mailer.from_email: 'ihre-email@gmx.net'
     mailer.from_name: 'Kita Kochdienst'
 ```
 
