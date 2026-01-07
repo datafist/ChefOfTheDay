@@ -30,13 +30,13 @@ services:
       - "traefik.docker.network=web"
       
       # HTTP Router (für Let's Encrypt Challenge und Redirect)
-      - "traefik.http.routers.kochdienst-http.rule=Host(`kochdienst.florianbirkenberger.de`)"
+      - "traefik.http.routers.kochdienst-http.rule=Host(`symfony.florianbirkenberger.de`)"
       - "traefik.http.routers.kochdienst-http.entrypoints=web"
       - "traefik.http.routers.kochdienst-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       
       # HTTPS Router
-      - "traefik.http.routers.kochdienst.rule=Host(`kochdienst.florianbirkenberger.de`)"
+      - "traefik.http.routers.kochdienst.rule=Host(`symfony.florianbirkenberger.de`)"
       - "traefik.http.routers.kochdienst.entrypoints=websecure"
       - "traefik.http.routers.kochdienst.tls=true"
       - "traefik.http.routers.kochdienst.tls.certresolver=letsencrypt"

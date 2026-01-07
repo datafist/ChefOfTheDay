@@ -8,7 +8,7 @@ Diese Anleitung beschreibt das Production-Deployment auf einem VPS mit Docker un
 
 | Komponente | Details |
 |------------|---------|
-| **Domain** | `kochdienst.florianbirkenberger.de` |
+| **Domain** | `symfony.florianbirkenberger.de` |
 | **Reverse Proxy** | Traefik v2.11 |
 | **SSL** | Let's Encrypt (automatisch via Traefik) |
 | **Container** | PHP 8.2 FPM + Nginx + Supervisor |
@@ -18,7 +18,7 @@ Diese Anleitung beschreibt das Production-Deployment auf einem VPS mit Docker un
 
 - VPS mit Docker und Docker Compose installiert
 - Traefik läuft bereits als Reverse Proxy
-- DNS-Eintrag für `kochdienst.florianbirkenberger.de` zeigt auf den VPS
+- DNS-Eintrag für `symfony.florianbirkenberger.de` zeigt auf den VPS
 - Das externe Docker-Netzwerk `web` existiert (wird von Traefik erstellt)
 
 ## Schritt 1: Repository auf den Server klonen
