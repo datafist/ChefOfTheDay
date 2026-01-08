@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile für Symfony Production
-FROM php:8.2-fpm-alpine AS base
+FROM php:8.3-fpm-alpine AS base
 
 # System-Abhängigkeiten installieren
 RUN apk add --no-cache \
