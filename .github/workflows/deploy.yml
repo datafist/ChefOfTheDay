@@ -20,6 +20,8 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
+          timeout: 60s
+          command_timeout: 20m
           script: |
             cd /opt/ChefOfTheDay
             git pull origin main
