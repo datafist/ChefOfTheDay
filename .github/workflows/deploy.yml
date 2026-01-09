@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT || 22 }}
-          timeout: 60s
+          timeout: 300s
           command_timeout: 20m
           script: |
             cd /opt/ChefOfTheDay
