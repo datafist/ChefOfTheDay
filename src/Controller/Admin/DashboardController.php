@@ -9,7 +9,9 @@ use App\Repository\CookingAssignmentRepository;
 use App\Repository\HolidayRepository;
 use App\Repository\KitaYearRepository;
 use App\Repository\LastYearCookingRepository;
+use App\Repository\PartyRepository;
 use App\Repository\VacationRepository;
+use App\Service\AuditLogger;
 use App\Service\CookingPlanGenerator;
 use App\Service\DateExclusionService;
 use App\Service\NotificationService;
@@ -31,6 +33,7 @@ class DashboardController extends AbstractController
         KitaYearRepository $kitaYearRepository,
         CookingAssignmentRepository $cookingAssignmentRepository,
         LastYearCookingRepository $lastYearCookingRepository,
+        PartyRepository $partyRepository,
         EntityManagerInterface $entityManager
     ): Response {
         $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
@@ -40,6 +43,8 @@ class DashboardController extends AbstractController
         $familyStats = [];
         $previousYearsDeletable = [];
         $newFamilies = [];
+        $familiesNotInPlan = [];
+        $familiesInPlan = [];
         
         if ($activeKitaYear) {
             $assignments = $cookingAssignmentRepository->findBy(
@@ -54,8 +59,10 @@ class DashboardController extends AbstractController
             
             // Berechne Statistik nach Familien
             $statsMap = [];
+            $assignedPartyIds = [];
             foreach ($assignments as $assignment) {
                 $partyId = $assignment->getParty()->getId();
+                $assignedPartyIds[$partyId] = true;
                 if (!isset($statsMap[$partyId])) {
                     $isNewFamily = !in_array($partyId, $familiesWithHistory);
                     $statsMap[$partyId] = [
@@ -75,6 +82,16 @@ class DashboardController extends AbstractController
             usort($familyStats, function($a, $b) {
                 return $b['count'] <=> $a['count'];
             });
+
+            // Familien identifizieren, die NICHT im Plan sind (für "In Plan aufnehmen")
+            $allParties = $partyRepository->findAll();
+            foreach ($allParties as $party) {
+                if (!isset($assignedPartyIds[$party->getId()])) {
+                    $familiesNotInPlan[] = $party;
+                } else {
+                    $familiesInPlan[] = $party;
+                }
+            }
 
             // Prüfe ob Plan für aktives Jahr generiert wurde
             $activePlanGenerated = $totalAssignments > 0;
@@ -97,6 +114,8 @@ class DashboardController extends AbstractController
             'familyStats' => $familyStats,
             'previousYearsDeletable' => $previousYearsDeletable,
             'newFamilies' => $newFamilies,
+            'familiesNotInPlan' => $familiesNotInPlan,
+            'familiesInPlan' => $familiesInPlan,
             'today' => new \DateTime('today'),
         ]);
     }
@@ -107,8 +126,14 @@ class DashboardController extends AbstractController
         KitaYearRepository $kitaYearRepository,
         CookingPlanGenerator $generator,
         EntityManagerInterface $entityManager,
-        CookingAssignmentRepository $assignmentRepository
+        CookingAssignmentRepository $assignmentRepository,
+        AuditLogger $auditLogger
     ): Response {
+        if (!$this->isCsrfTokenValid('generate-plan', $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
         $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
         
         if (!$activeKitaYear) {
@@ -116,14 +141,20 @@ class DashboardController extends AbstractController
             return $this->redirectToRoute('admin_dashboard');
         }
 
-        // Lösche existierende Zuweisungen
+        // Manuelle Zuweisungen schützen
         $existingAssignments = $assignmentRepository->findBy(['kitaYear' => $activeKitaYear]);
+        $manualAssignments = array_filter($existingAssignments, fn($a) => $a->isManuallyAssigned());
+        $manualCount = count($manualAssignments);
+
+        // Nur automatische Zuweisungen löschen
         foreach ($existingAssignments as $assignment) {
-            $entityManager->remove($assignment);
+            if (!$assignment->isManuallyAssigned()) {
+                $entityManager->remove($assignment);
+            }
         }
         $entityManager->flush();
 
-        // Generiere neuen Plan
+        // Generiere neuen Plan (berücksichtigt bestehende manuelle Zuweisungen)
         $result = $generator->generatePlan($activeKitaYear);
         $assignments = $result['assignments'];
         $conflicts = $result['conflicts'];
@@ -134,11 +165,23 @@ class DashboardController extends AbstractController
             }
         }
 
-        // Speichere Zuweisungen
+        // Speichere neue Zuweisungen
         $generator->saveAssignments($assignments);
 
-        $this->addFlash('success', sprintf('✓ Kochplan mit %d Zuweisungen erfolgreich generiert!', count($assignments)));
-        $this->addFlash('info', '💡 E-Mail-Benachrichtigungen können jetzt manuell versendet werden.');
+        $totalNew = count($assignments);
+        $this->addFlash('success', sprintf(
+            '✓ Kochplan mit %d Zuweisungen erfolgreich generiert!%s',
+            $totalNew + $manualCount,
+            $manualCount > 0 ? sprintf(' (%d manuelle Zuweisungen beibehalten)', $manualCount) : ''
+        ));
+        $this->addFlash('info', 'E-Mail-Benachrichtigungen können jetzt manuell versendet werden.');
+
+        $auditLogger->logPlanGenerated(
+            $this->getUser()->getUserIdentifier(),
+            $activeKitaYear->getYearString(),
+            $totalNew + $manualCount,
+            $manualCount
+        );
 
         return $this->redirectToRoute('admin_dashboard');
     }
@@ -148,7 +191,8 @@ class DashboardController extends AbstractController
         Request $request,
         KitaYearRepository $kitaYearRepository,
         CookingAssignmentRepository $assignmentRepository,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AuditLogger $auditLogger
     ): Response {
         // CSRF Token validieren
         if (!$this->isCsrfTokenValid('delete-plan', $request->request->get('_token'))) {
@@ -176,6 +220,12 @@ class DashboardController extends AbstractController
             $activeKitaYear->getYearString(), 
             $count
         ));
+
+        $auditLogger->logPlanDeleted(
+            $this->getUser()->getUserIdentifier(),
+            $activeKitaYear->getYearString(),
+            $count
+        );
 
         return $this->redirectToRoute('admin_dashboard');
     }
@@ -286,7 +336,8 @@ class DashboardController extends AbstractController
         Request $request,
         int $id,
         CookingAssignmentRepository $assignmentRepository,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AuditLogger $auditLogger
     ): Response {
         // CSRF Token validieren
         $token = $request->request->get('_token');
@@ -334,6 +385,13 @@ class DashboardController extends AbstractController
                 $assignment->setParty($party);
                 $assignment->setIsManuallyAssigned(true);
                 $entityManager->flush();
+
+                $auditLogger->logAssignmentChanged(
+                    $this->getUser()->getUserIdentifier(),
+                    $date,
+                    $oldParty,
+                    $party->getChildrenNames()
+                );
                 
                 $this->addFlash('success', sprintf(
                     'Zuweisung erfolgreich geändert: %s → %s', 
@@ -352,7 +410,8 @@ class DashboardController extends AbstractController
     public function createAssignment(
         Request $request,
         KitaYearRepository $kitaYearRepository,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AuditLogger $auditLogger
     ): Response {
         // CSRF Token validieren
         $token = $request->request->get('_token');
@@ -413,6 +472,12 @@ class DashboardController extends AbstractController
         $entityManager->persist($assignment);
         $entityManager->flush();
 
+        $auditLogger->logAssignmentCreated(
+            $this->getUser()->getUserIdentifier(),
+            $date,
+            $party->getChildrenNames()
+        );
+
         $this->addFlash('success', sprintf(
             'Kochdienst für %s erfolgreich zugewiesen!',
             $party->getChildrenNames()
@@ -426,7 +491,8 @@ class DashboardController extends AbstractController
         Request $request,
         int $id,
         CookingAssignmentRepository $assignmentRepository,
-        EntityManagerInterface $entityManager
+        EntityManagerInterface $entityManager,
+        AuditLogger $auditLogger
     ): Response {
         // CSRF Token validieren
         $token = $request->request->get('_token');
@@ -448,6 +514,12 @@ class DashboardController extends AbstractController
         $entityManager->remove($assignment);
         $entityManager->flush();
 
+        $auditLogger->logAssignmentDeleted(
+            $this->getUser()->getUserIdentifier(),
+            $date,
+            $partyName
+        );
+
         $this->addFlash('success', sprintf(
             'Zuweisung für %s am %s wurde gelöscht.',
             $partyName,
@@ -455,6 +527,97 @@ class DashboardController extends AbstractController
         ));
 
         return $this->redirectToRoute('admin_calendar');
+    }
+
+    /**
+     * Fügt eine neue Familie inkrementell in den bestehenden Plan ein.
+     * Übernimmt zukünftige Zuweisungen von überbelasteten Familien.
+     */
+    #[Route('/add-family-to-plan/{id}', name: 'admin_add_family_to_plan', methods: ['POST'])]
+    public function addFamilyToPlan(
+        Request $request,
+        Party $party,
+        KitaYearRepository $kitaYearRepository,
+        CookingPlanGenerator $generator,
+        AuditLogger $auditLogger
+    ): Response {
+        if (!$this->isCsrfTokenValid('add-family-' . $party->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
+        if (!$activeKitaYear) {
+            $this->addFlash('error', 'Kein aktives Kita-Jahr gefunden.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $result = $generator->addFamilyToPlan($activeKitaYear, $party);
+
+        if ($result['transferred'] > 0) {
+            $this->addFlash('success', sprintf(
+                '✅ %s wurde in den Plan aufgenommen: %d Dienste übertragen.',
+                $party->getChildrenNames(),
+                $result['transferred']
+            ));
+        }
+
+        $auditLogger->logFamilyAddedToPlan(
+            $this->getUser()->getUserIdentifier(),
+            $party->getChildrenNames(),
+            $result['transferred']
+        );
+
+        foreach ($result['conflicts'] as $conflict) {
+            $this->addFlash('warning', $conflict);
+        }
+
+        return $this->redirectToRoute('admin_dashboard');
+    }
+
+    /**
+     * Entfernt eine Familie aus dem Plan und verteilt deren zukünftige Dienste um.
+     */
+    #[Route('/remove-family-from-plan/{id}', name: 'admin_remove_family_from_plan', methods: ['POST'])]
+    public function removeFamilyFromPlan(
+        Request $request,
+        Party $party,
+        KitaYearRepository $kitaYearRepository,
+        CookingPlanGenerator $generator,
+        AuditLogger $auditLogger
+    ): Response {
+        if (!$this->isCsrfTokenValid('remove-family-' . $party->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $activeKitaYear = $kitaYearRepository->findOneBy(['isActive' => true]);
+        if (!$activeKitaYear) {
+            $this->addFlash('error', 'Kein aktives Kita-Jahr gefunden.');
+            return $this->redirectToRoute('admin_dashboard');
+        }
+
+        $result = $generator->removeFamilyFromPlan($activeKitaYear, $party);
+
+        $auditLogger->logFamilyRemovedFromPlan(
+            $this->getUser()->getUserIdentifier(),
+            $party->getChildrenNames(),
+            $result['redistributed'],
+            $result['removed']
+        );
+
+        $this->addFlash('success', sprintf(
+            '✅ %s aus dem Plan entfernt: %d Dienste umverteilt, %d gelöscht.',
+            $party->getChildrenNames(),
+            $result['redistributed'],
+            $result['removed']
+        ));
+
+        foreach ($result['conflicts'] as $conflict) {
+            $this->addFlash('warning', $conflict);
+        }
+
+        return $this->redirectToRoute('admin_dashboard');
     }
 
     private function buildCalendarView(KitaYear $kitaYear, array $assignments, array $excludedDates): array

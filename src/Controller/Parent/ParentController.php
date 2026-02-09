@@ -3,36 +3,73 @@
 namespace App\Controller\Parent;
 
 use App\Entity\Availability;
+use App\Entity\KitaYear;
 use App\Repository\AvailabilityRepository;
-use App\Repository\HolidayRepository;
 use App\Repository\KitaYearRepository;
 use App\Repository\PartyRepository;
-use App\Repository\VacationRepository;
+use App\Service\DateExclusionService;
 use App\Util\DateHelper;
 use Doctrine\ORM\EntityManagerInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Annotation\Route;
 
 #[Route('/parent')]
 class ParentController extends AbstractController
 {
+    private const SESSION_TIMEOUT = 3600; // 1 Stunde
+
     #[Route('/login', name: 'parent_login', methods: ['GET', 'POST'])]
-    public function login(Request $request, PartyRepository $partyRepository): Response
-    {
+    public function login(
+        Request $request,
+        PartyRepository $partyRepository,
+        RateLimiterFactory $parentLoginLimiter,
+        LoggerInterface $logger
+    ): Response {
         if ($request->isMethod('POST')) {
+            // CSRF-Validierung
+            $submittedToken = $request->request->get('_csrf_token');
+            if (!$this->isCsrfTokenValid('parent_login', $submittedToken)) {
+                $this->addFlash('error', 'Ungültiger Sicherheitstoken. Bitte versuchen Sie es erneut.');
+                return $this->redirectToRoute('parent_login');
+            }
+
+            // Rate-Limiting: max. 5 Versuche pro Minute pro IP
+            $limiter = $parentLoginLimiter->create($request->getClientIp());
+            if (false === $limiter->consume(1)->isAccepted()) {
+                $logger->warning('Parent login rate limit exceeded', [
+                    'ip' => $request->getClientIp(),
+                ]);
+                $this->addFlash('error', 'Zu viele Login-Versuche. Bitte warten Sie einen Moment.');
+                return $this->redirectToRoute('parent_login');
+            }
+
             $partyId = $request->request->get('party_id');
             $password = $request->request->get('password');
 
             $party = $partyRepository->find($partyId);
 
-            if ($party && $party->getGeneratedPassword() === $password) {
-                // Erfolgreicher Login - speichere in Session
+            if ($party && hash_equals($party->getGeneratedPassword(), (string) $password)) {
+                // Session-Regeneration gegen Session-Fixation
+                $request->getSession()->migrate(true);
                 $request->getSession()->set('parent_party_id', $party->getId());
+                $request->getSession()->set('parent_login_time', time());
+
+                $logger->info('Parent login successful', [
+                    'party_id' => $party->getId(),
+                    'family' => $party->getChildrenNames(),
+                ]);
+
                 return $this->redirectToRoute('parent_availability');
             }
 
+            $logger->notice('Parent login failed', [
+                'party_id' => $partyId,
+                'ip' => $request->getClientIp(),
+            ]);
             $this->addFlash('error', 'Ungültiges Passwort');
         }
 
@@ -48,14 +85,20 @@ class ParentController extends AbstractController
         Request $request,
         PartyRepository $partyRepository,
         KitaYearRepository $kitaYearRepository,
-        HolidayRepository $holidayRepository,
-        VacationRepository $vacationRepository,
         AvailabilityRepository $availabilityRepository,
+        DateExclusionService $dateExclusionService,
         EntityManagerInterface $em
     ): Response {
         $partyId = $request->getSession()->get('parent_party_id');
+        $loginTime = $request->getSession()->get('parent_login_time', 0);
 
-        if (!$partyId) {
+        // Session-Timeout prüfen
+        if (!$partyId || (time() - $loginTime) > self::SESSION_TIMEOUT) {
+            $request->getSession()->remove('parent_party_id');
+            $request->getSession()->remove('parent_login_time');
+            if ($partyId && (time() - $loginTime) > self::SESSION_TIMEOUT) {
+                $this->addFlash('warning', 'Ihre Sitzung ist abgelaufen. Bitte melden Sie sich erneut an.');
+            }
             return $this->redirectToRoute('parent_login');
         }
 
@@ -155,7 +198,7 @@ class ParentController extends AbstractController
         $savedDates = $availability ? $availability->getAvailableDates() : [];
 
         // Erstelle Kalender
-        $calendar = $this->buildCalendar($activeYear, $holidayRepository, $vacationRepository);
+        $calendar = $this->buildCalendar($activeYear, $dateExclusionService);
 
         return $this->render('parent/availability.html.twig', [
             'party' => $party,
@@ -168,42 +211,21 @@ class ParentController extends AbstractController
         ]);
     }
 
-    private function buildCalendar(
-        $kitaYear,
-        HolidayRepository $holidayRepository,
-        VacationRepository $vacationRepository,
-        bool $excludeWeekendsAndHolidays = true
-    ): array {
-        $holidays = $holidayRepository->findBy(['kitaYear' => $kitaYear]);
-        $vacations = $vacationRepository->findBy(['kitaYear' => $kitaYear]);
-
-        $holidayDates = [];
-        foreach ($holidays as $holiday) {
-            $holidayDates[$holiday->getDate()->format('Y-m-d')] = $holiday->getName();
-        }
-
-        $vacationRanges = [];
-        foreach ($vacations as $vacation) {
-            $vacationRanges[] = [
-                'start' => $vacation->getStartDate(),
-                'end' => $vacation->getEndDate(),
-                'name' => $vacation->getName(),
-            ];
-        }
+    private function buildCalendar(KitaYear $kitaYear, DateExclusionService $dateExclusionService): array
+    {
+        $excludedDates = $dateExclusionService->getExcludedDatesForKitaYear($kitaYear);
 
         $calendar = [];
         $currentDate = clone $kitaYear->getStartDate();
         $endDate = clone $kitaYear->getEndDate();
-
         $currentMonth = null;
         $monthData = null;
 
         while ($currentDate <= $endDate) {
             $dateStr = $currentDate->format('Y-m-d');
             $month = $currentDate->format('Y-m');
-            $dayOfWeek = (int)$currentDate->format('N'); // 1=Monday, 7=Sunday
+            $dayOfWeek = (int)$currentDate->format('N');
 
-            // Neuer Monat?
             if ($month !== $currentMonth) {
                 if ($monthData !== null) {
                     $calendar[] = $monthData;
@@ -214,38 +236,9 @@ class ParentController extends AbstractController
                     'name_de' => DateHelper::getMonthNameGerman((int)$currentDate->format('n')) . ' ' . $currentDate->format('Y'),
                     'weeks' => [[]],
                 ];
-
-                // Fülle Tage bis zum ersten Tag des Monats
                 $firstDayOfWeek = (int)$currentDate->format('N');
                 for ($i = 1; $i < $firstDayOfWeek; $i++) {
                     $monthData['weeks'][0][] = null;
-                }
-            }
-
-            // Prüfe ob Tag ausgeschlossen ist
-            $isExcluded = false;
-            $excludeReason = null;
-
-            if ($excludeWeekendsAndHolidays) {
-                // Wochenende?
-                if ($dayOfWeek >= 6) {
-                    $isExcluded = true;
-                    $excludeReason = 'Wochenende';
-                }
-
-                // Feiertag?
-                if (isset($holidayDates[$dateStr])) {
-                    $isExcluded = true;
-                    $excludeReason = $holidayDates[$dateStr];
-                }
-
-                // Ferien?
-                foreach ($vacationRanges as $vacation) {
-                    if ($currentDate >= $vacation['start'] && $currentDate <= $vacation['end']) {
-                        $isExcluded = true;
-                        $excludeReason = $vacation['name'];
-                        break;
-                    }
                 }
             }
 
@@ -253,15 +246,13 @@ class ParentController extends AbstractController
                 'date' => $dateStr,
                 'day' => (int)$currentDate->format('j'),
                 'dayOfWeek' => $dayOfWeek,
-                'isExcluded' => $isExcluded,
-                'excludeReason' => $excludeReason,
+                'isExcluded' => isset($excludedDates[$dateStr]),
+                'excludeReason' => $excludedDates[$dateStr] ?? null,
             ];
 
-            // Füge Tag zur aktuellen Woche hinzu
             $currentWeekIndex = count($monthData['weeks']) - 1;
             $monthData['weeks'][$currentWeekIndex][] = $dayData;
 
-            // Neue Woche beginnen wenn Sonntag
             if ($dayOfWeek === 7) {
                 $monthData['weeks'][] = [];
             }
@@ -269,9 +260,7 @@ class ParentController extends AbstractController
             $currentDate = $currentDate->modify('+1 day');
         }
 
-        // Füge letzten Monat hinzu
         if ($monthData !== null) {
-            // Fülle letzte Woche auf
             $lastWeek = &$monthData['weeks'][count($monthData['weeks']) - 1];
             while (count($lastWeek) < 7) {
                 $lastWeek[] = null;

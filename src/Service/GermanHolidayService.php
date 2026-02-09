@@ -33,28 +33,23 @@ class GermanHolidayService
         $easterDate = $this->getEasterDate($year);
         
         // Karfreitag (2 Tage vor Ostern)
-        $goodFriday = clone $easterDate;
-        $goodFriday->modify('-2 days');
+        $goodFriday = $easterDate->modify('-2 days');
         $holidays[$goodFriday->format('Y-m-d')] = 'Karfreitag';
         
         // Ostermontag (1 Tag nach Ostern)
-        $easterMonday = clone $easterDate;
-        $easterMonday->modify('+1 day');
+        $easterMonday = $easterDate->modify('+1 day');
         $holidays[$easterMonday->format('Y-m-d')] = 'Ostermontag';
         
         // Christi Himmelfahrt (39 Tage nach Ostern)
-        $ascension = clone $easterDate;
-        $ascension->modify('+39 days');
+        $ascension = $easterDate->modify('+39 days');
         $holidays[$ascension->format('Y-m-d')] = 'Christi Himmelfahrt';
         
         // Pfingstmontag (50 Tage nach Ostern)
-        $pentecostMonday = clone $easterDate;
-        $pentecostMonday->modify('+50 days');
+        $pentecostMonday = $easterDate->modify('+50 days');
         $holidays[$pentecostMonday->format('Y-m-d')] = 'Pfingstmontag';
         
         // Fronleichnam (60 Tage nach Ostern) - nur BW, BY, HE, NW, RP, SL
-        $corpusChristi = clone $easterDate;
-        $corpusChristi->modify('+60 days');
+        $corpusChristi = $easterDate->modify('+60 days');
         $holidays[$corpusChristi->format('Y-m-d')] = 'Fronleichnam';
         
         // Sortiere nach Datum

@@ -46,7 +46,7 @@
         {% for type, messages in app.flashes %}
             {% for message in messages %}
                 <div class="alert alert-{{ type }} mt-3" role="alert">
-                    {{ message|raw }}
+                    {{ message }}
                 </div>
             {% endfor %}
         {% endfor %}

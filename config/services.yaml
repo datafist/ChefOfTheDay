@@ -22,3 +22,13 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # Security Headers mit APP_ENV
+    App\EventSubscriber\SecurityHeadersSubscriber:
+        arguments:
+            $appEnv: '%kernel.environment%'
+
+    # Audit Logger mit dediziertem Monolog-Channel
+    App\Service\AuditLogger:
+        arguments:
+            $auditLogger: '@monolog.logger.audit'

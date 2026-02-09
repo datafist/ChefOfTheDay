@@ -1,0 +1,11 @@
+[Unit]
+Description=ChefOfTheDay Jahresübergang
+After=mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+WorkingDirectory=/home/florian/ChefOfTheDay
+ExecStart=/home/florian/ChefOfTheDay/bin/cron-wrapper.sh app:create-last-year-cooking
+StandardOutput=journal
+StandardError=journal

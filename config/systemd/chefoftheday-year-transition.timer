@@ -1,0 +1,9 @@
+[Unit]
+Description=ChefOfTheDay Jahresübergang Timer (jährlich 1. August)
+
+[Timer]
+OnCalendar=*-08-01 06:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

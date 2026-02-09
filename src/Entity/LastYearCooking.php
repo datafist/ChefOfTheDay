@@ -27,7 +27,7 @@ class LastYearCooking
     private ?int $cookingCount = null;
 
     #[ORM\ManyToOne(inversedBy: 'lastYearCookings')]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?KitaYear $kitaYear = null;
 
     public function getId(): ?int

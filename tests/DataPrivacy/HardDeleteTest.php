@@ -44,7 +44,7 @@ class HardDeleteTest extends KernelTestCase
         $kitaYear = new KitaYear();
         $kitaYear->setStartDate(new \DateTimeImmutable('2024-09-01'));
         $kitaYear->setEndDate(new \DateTimeImmutable('2025-08-31'));
-        $kitaYear->setActive(true);
+        $kitaYear->setIsActive(true);
         $this->entityManager->persist($kitaYear);
 
         $availability = new Availability();
@@ -72,6 +72,7 @@ class HardDeleteTest extends KernelTestCase
         $availabilityId = $availability->getId();
         $assignmentId = $assignment->getId();
         $lastYearId = $lastYear->getId();
+        $kitaYearId = $kitaYear->getId();
 
         // 2. Party löschen
         $this->entityManager->remove($party);
@@ -92,9 +93,12 @@ class HardDeleteTest extends KernelTestCase
         $deletedLastYear = $this->entityManager->getRepository(LastYearCooking::class)->find($lastYearId);
         $this->assertNull($deletedLastYear, 'LastYearCooking wurde nicht gelöscht (Cascade Delete fehlgeschlagen)');
 
-        // 5. Cleanup: KitaYear löschen
-        $this->entityManager->remove($kitaYear);
-        $this->entityManager->flush();
+        // 5. Cleanup: KitaYear löschen (re-fetch nach clear())
+        $kitaYear = $this->entityManager->getRepository(KitaYear::class)->find($kitaYearId);
+        if ($kitaYear) {
+            $this->entityManager->remove($kitaYear);
+            $this->entityManager->flush();
+        }
     }
 
     /**
@@ -111,7 +115,7 @@ class HardDeleteTest extends KernelTestCase
         $kitaYear = new KitaYear();
         $kitaYear->setStartDate(new \DateTimeImmutable('2023-09-01'));
         $kitaYear->setEndDate(new \DateTimeImmutable('2024-08-31'));
-        $kitaYear->setActive(false); // Nicht aktiv, damit löschbar
+        $kitaYear->setIsActive(false); // Nicht aktiv, damit löschbar
         $this->entityManager->persist($kitaYear);
 
         $availability = new Availability();
@@ -126,11 +130,20 @@ class HardDeleteTest extends KernelTestCase
         $assignment->setAssignedDate(new \DateTimeImmutable('2023-10-01'));
         $this->entityManager->persist($assignment);
 
+        $lastYear = new LastYearCooking();
+        $lastYear->setParty($party);
+        $lastYear->setKitaYear($kitaYear);
+        $lastYear->setLastCookingDate(new \DateTimeImmutable('2023-10-01'));
+        $lastYear->setCookingCount(1);
+        $this->entityManager->persist($lastYear);
+
         $this->entityManager->flush();
 
         $kitaYearId = $kitaYear->getId();
+        $partyId = $party->getId();
         $availabilityId = $availability->getId();
         $assignmentId = $assignment->getId();
+        $lastYearId = $lastYear->getId();
 
         // 2. KitaYear löschen
         $this->entityManager->remove($kitaYear);
@@ -148,7 +161,14 @@ class HardDeleteTest extends KernelTestCase
         $deletedAssignment = $this->entityManager->getRepository(CookingAssignment::class)->find($assignmentId);
         $this->assertNull($deletedAssignment, 'CookingAssignment wurde nicht gelöscht (Cascade Delete fehlgeschlagen)');
 
-        // 5. Cleanup: Party löschen
+        // LastYearCooking: KitaYear hat SET NULL → Eintrag existiert noch, aber kitaYear ist NULL
+        // (wird beim nächsten Jahreswechsel automatisch bereinigt)
+        $orphanedLastYear = $this->entityManager->getRepository(LastYearCooking::class)->find($lastYearId);
+        $this->assertNotNull($orphanedLastYear, 'LastYearCooking sollte bei KitaYear-Löschung erhalten bleiben (SET NULL)');
+        $this->assertNull($orphanedLastYear->getKitaYear(), 'LastYearCooking.kitaYear sollte NULL sein nach KitaYear-Löschung');
+
+        // 5. Cleanup: Party löschen (löscht auch orphaned LastYearCooking via CASCADE)
+        $party = $this->entityManager->getRepository(Party::class)->find($partyId);
         $this->entityManager->remove($party);
         $this->entityManager->flush();
     }
@@ -172,11 +192,12 @@ class HardDeleteTest extends KernelTestCase
             $this->assertNotNull($assignment->getKitaYear(), 'Orphaned CookingAssignment found: kein KitaYear');
         }
 
-        // Alle LastYearCookings sollten gültige Party und KitaYear Referenzen haben
+        // Alle LastYearCookings sollten gültige Party-Referenzen haben
+        // KitaYear darf NULL sein (SET NULL bei KitaYear-Löschung — gewolltes Verhalten seit Phase 2)
         $lastYears = $this->entityManager->getRepository(LastYearCooking::class)->findAll();
         foreach ($lastYears as $lastYear) {
             $this->assertNotNull($lastYear->getParty(), 'Orphaned LastYearCooking found: keine Party');
-            $this->assertNotNull($lastYear->getKitaYear(), 'Orphaned LastYearCooking found: kein KitaYear');
+            // kitaYear darf NULL sein — wird beim nächsten Jahreswechsel bereinigt
         }
     }
 

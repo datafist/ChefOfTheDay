@@ -1,0 +1,48 @@
+# =============================================================================
+# ChefOfTheDay - Crontab Konfiguration
+# =============================================================================
+#
+# Installation:
+#   crontab -e
+#   (Inhalt einfügen und Pfade anpassen)
+#
+# Oder als System-Crontab:
+#   sudo cp config/crontab /etc/cron.d/chefoftheday
+#   sudo chmod 644 /etc/cron.d/chefoftheday
+#
+# WICHTIG: Pfade an die eigene Installation anpassen!
+# =============================================================================
+
+# Umgebungsvariablen
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PROJECT_DIR=/home/florian/ChefOfTheDay
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TÄGLICHE JOBS
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Erinnerungs-E-Mails senden (Mo-Fr um 8:00 Uhr, 3 Tage im Voraus)
+# Sendet an Familien die in den nächsten 3 Tagen Kochdienst haben
+0 8 * * 1-5  cd $PROJECT_DIR && bin/cron-wrapper.sh app:send-reminders 3
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JÄHRLICHE JOBS (Kita-Jahreswechsel)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Feiertage generieren (1. Juli, für das kommende Kita-Jahr Sep-Aug)
+0 6 1 7 *   cd $PROJECT_DIR && bin/cron-wrapper.sh app:generate-holidays --force
+
+# Jahresübergang: LastYearCooking-Einträge erstellen (1. August)
+# Sichert die Kochzählungen des Vorjahres für faire Verteilung im neuen Jahr
+0 6 1 8 *   cd $PROJECT_DIR && bin/cron-wrapper.sh app:create-last-year-cooking
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WARTUNG
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Cron-Log rotieren (monatlich am 1. um 0:00)
+0 0 1 * *   find $PROJECT_DIR/var/log -name "cron.log" -size +10M -exec truncate -s 0 {} \;
+
+# Symfony Cache aufwärmen (nach Deployment, hier als Beispiel sonntags 3:00)
+# 0 3 * * 0  cd $PROJECT_DIR && php bin/console cache:warmup --env=prod --no-interaction

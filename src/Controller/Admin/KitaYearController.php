@@ -4,6 +4,8 @@ namespace App\Controller\Admin;
 
 use App\Entity\KitaYear;
 use App\Repository\KitaYearRepository;
+use App\Service\AuditLogger;
+use App\Service\LastYearCookingService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -143,10 +145,49 @@ class KitaYearController extends AbstractController
 
     #[Route('/{id}/activate', name: 'admin_kita_year_activate', methods: ['POST'])]
     public function activate(
+        Request $request,
         KitaYear $kitaYear,
         EntityManagerInterface $entityManager,
-        KitaYearRepository $kitaYearRepository
+        KitaYearRepository $kitaYearRepository,
+        LastYearCookingService $lastYearCookingService,
+        AuditLogger $auditLogger
     ): Response {
+        if (!$this->isCsrfTokenValid('activate' . $kitaYear->getId(), $request->request->get('_token'))) {
+            $this->addFlash('error', 'Ungültiger Sicherheits-Token.');
+            return $this->redirectToRoute('admin_kita_year_index');
+        }
+
+        // Finde das aktuell aktive Jahr BEVOR wir wechseln
+        $previousActiveYear = $kitaYearRepository->findOneBy(['isActive' => true]);
+
+        // Automatisch LastYearCooking erstellen, wenn das bisherige aktive Jahr Zuweisungen hat
+        if ($previousActiveYear && $previousActiveYear->getId() !== $kitaYear->getId()) {
+            $assignmentCount = $entityManager->getRepository(\App\Entity\CookingAssignment::class)
+                ->count(['kitaYear' => $previousActiveYear]);
+
+            if ($assignmentCount > 0) {
+                $result = $lastYearCookingService->createFromKitaYear($previousActiveYear);
+
+                if ($result['created'] > 0 || $result['updated'] > 0) {
+                    $this->addFlash('info', sprintf(
+                        '📊 Vorjahresdaten aus %s automatisch gesichert: %d erstellt, %d aktualisiert.',
+                        $previousActiveYear->getYearString(),
+                        $result['created'],
+                        $result['updated']
+                    ));
+                }
+
+                // Verwaiste Einträge aufräumen
+                $cleaned = $lastYearCookingService->cleanupOrphaned();
+                if ($cleaned > 0) {
+                    $this->addFlash('info', sprintf(
+                        '🗑️ %d veraltete Vorjahres-Einträge bereinigt.',
+                        $cleaned
+                    ));
+                }
+            }
+        }
+
         // Deaktiviere alle anderen
         foreach ($kitaYearRepository->findAll() as $year) {
             $year->setIsActive(false);
@@ -157,6 +198,12 @@ class KitaYearController extends AbstractController
         $entityManager->flush();
 
         $this->addFlash('success', 'Kita-Jahr ' . $kitaYear->getYearString() . ' aktiviert.');
+
+        $auditLogger->logKitaYearActivated(
+            $this->getUser()->getUserIdentifier(),
+            $kitaYear->getYearString()
+        );
+
         return $this->redirectToRoute('admin_kita_year_index');
     }
 
@@ -165,7 +212,8 @@ class KitaYearController extends AbstractController
         Request $request, 
         KitaYear $kitaYear, 
         EntityManagerInterface $entityManager,
-        KitaYearRepository $kitaYearRepository
+        KitaYearRepository $kitaYearRepository,
+        AuditLogger $auditLogger
     ): Response {
         if ($this->isCsrfTokenValid('delete'.$kitaYear->getId(), $request->request->get('_token'))) {
             // Sicherheitsprüfung: Ist dies das aktive Jahr?
@@ -207,9 +255,16 @@ class KitaYearController extends AbstractController
             }
 
             // Löschung erlaubt
+            $yearString = $kitaYear->getYearString();
             $entityManager->remove($kitaYear);
             $entityManager->flush();
-            $this->addFlash('success', 'Kita-Jahr ' . $kitaYear->getYearString() . ' erfolgreich gelöscht.');
+
+            $auditLogger->logKitaYearDeleted(
+                $this->getUser()->getUserIdentifier(),
+                $yearString
+            );
+
+            $this->addFlash('success', 'Kita-Jahr ' . $yearString . ' erfolgreich gelöscht.');
         }
 
         return $this->redirectToRoute('admin_kita_year_index');

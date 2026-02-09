@@ -56,7 +56,7 @@ class KitaYear
     /**
      * @var Collection<int, LastYearCooking>
      */
-    #[ORM\OneToMany(targetEntity: LastYearCooking::class, mappedBy: 'kitaYear', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: LastYearCooking::class, mappedBy: 'kitaYear')]
     private Collection $lastYearCookings;
 
     public function __construct()

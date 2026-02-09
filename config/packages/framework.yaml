@@ -15,11 +15,28 @@ framework:
         handler_id: null
         cookie_secure: auto
         cookie_samesite: lax
+        cookie_httponly: true
+        gc_maxlifetime: 3600
 
     #esi: true
     #fragments: true
     php_errors:
         log: true
+
+    # Rate Limiting für Login-Schutz
+    rate_limiter:
+        # Eltern-Login: 5 Versuche pro Minute pro IP
+        parent_login:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
+        # Admin-Login: 5 Versuche pro Minute pro IP
+        admin_login:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '1 minute'
+            lock_factory: 'lock.factory'
 
 when@test:
     framework:

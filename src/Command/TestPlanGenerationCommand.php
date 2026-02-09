@@ -83,7 +83,7 @@ class TestPlanGenerationCommand extends Command
                     '✅',
                     $dateStr,
                     $dayName,
-                    $assignment->getParty()->getChildName()
+                    $assignment->getParty()->getChildrenNames()
                 ];
             } else {
                 $rows[] = [

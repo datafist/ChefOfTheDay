@@ -10,6 +10,10 @@ Eine Symfony 6.4 LTS Webanwendung zur gerechten Verteilung von Kochdiensten in e
 - **Feiertage & Ferien**: Automatische Berücksichtigung von freien Tagen
 - **Jahresübergreifende Fairness**: Mindestabstand zwischen Kochdiensten über Jahrsgrenzen hinweg
 - **Flexible Anpassung**: Manuelles Zuweisen und Ändern von Diensten möglich
+- **Inkrementelle Planänderungen**: Familien können nachträglich in bestehende Pläne aufgenommen oder entfernt werden
+- **Security Headers**: CSP, X-Frame-Options, HSTS und weitere Schutzmaßnahmen
+- **Audit Logging**: Protokollierung sicherheitsrelevanter Admin-Aktionen
+- **Cron Automation**: Automatisierte Erinnerungen, Feiertags-Generierung und Jahresübergang
 
 ## 📋 Tech Stack
 
@@ -181,9 +185,45 @@ Der Kochplan-Generierungs-Algorithmus berücksichtigt:
 
 ## 🧪 Testing
 
+Die Anwendung hat eine umfassende Test-Suite mit **101 Tests** und **2412 Assertions**.
+
+### Tests ausführen
+
 ```bash
+# Alle Tests
 php bin/phpunit
+
+# Nur Unit Tests
+php bin/phpunit tests/Unit/
+
+# Nur Integration Tests
+php bin/phpunit tests/Integration/
+
+# Nur Functional Tests
+php bin/phpunit tests/Functional/
+
+# Nur Pre-existing Tests (Controller, DataPrivacy)
+php bin/phpunit tests/Controller/ tests/DataPrivacy/
 ```
+
+### Test-Datenbank einrichten
+
+```bash
+# Test-DB wird automatisch aus der Hauptkonfiguration abgeleitet (_test Suffix)
+php bin/console doctrine:database:create --env=test
+php bin/console doctrine:migrations:migrate --no-interaction --env=test
+php bin/console doctrine:fixtures:load --no-interaction --env=test
+```
+
+### Test-Kategorien
+
+| Kategorie | Dateien | Tests | Beschreibung |
+|-----------|---------|-------|--------------|
+| **Unit** | `tests/Unit/` | 44 | Entity-Logik, Feiertagsberechnung |
+| **Integration** | `tests/Integration/` | 24 | CookingPlanGenerator, LastYearCookingService, DateExclusionService |
+| **Functional** | `tests/Functional/` | 25 | Security Headers, Login (CSRF, Session), Admin-Zugangskontrolle |
+| **Controller** | `tests/Controller/` | 5 | KitaYear-Löschschutz |
+| **DataPrivacy** | `tests/DataPrivacy/` | 3 | DSGVO Hard-Delete-Verifikation |
 
 ## 📝 Fixtures (Demo-Daten)
 
@@ -195,19 +235,38 @@ php bin/console doctrine:fixtures:load
 
 ```
 src/
+├── Command/                # Console Commands (Cron-Jobs, Setup, Tests)
 ├── Controller/
-│   ├── Admin/          # Admin-Controller
-│   └── Parent/         # Eltern-Controller
-├── Entity/             # Doctrine Entities
-├── Form/               # Symfony Forms
-├── Repository/         # Doctrine Repositories
-├── Security/           # Custom Authenticators
-└── Service/
-    └── CookingPlanGenerator.php  # Algorithmus
+│   ├── Admin/              # Admin-Controller (Dashboard, Familien, Kalender, KitaYear)
+│   └── Parent/             # Eltern-Controller (Login, Verfügbarkeit)
+├── Entity/                 # Doctrine Entities
+├── EventSubscriber/        # Security Headers Subscriber
+├── Form/                   # Symfony Forms
+├── Repository/             # Doctrine Repositories
+├── Security/               # Custom Authenticators
+├── Service/
+│   ├── AuditLogger.php     # Audit-Logging für Admin-Aktionen
+│   ├── CookingPlanGenerator.php  # Algorithmus (inkl. add/remove Family)
+│   ├── DateExclusionService.php  # Ferien/Feiertage/Wochenenden
+│   ├── GermanHolidayService.php  # BW-Feiertagsberechnung
+│   └── LastYearCookingService.php # Jahresübergang
+└── Util/
 templates/
-├── admin/              # Admin-Templates
-├── parent/             # Eltern-Templates
-└── base.html.twig      # Base Layout
+├── admin/                  # Admin-Templates
+├── emails/                 # E-Mail-Templates
+├── parent/                 # Eltern-Templates
+├── pdf/                    # PDF-Export-Templates
+└── base.html.twig          # Base Layout
+tests/
+├── Unit/                   # Pure Unit Tests (44 Tests)
+├── Integration/            # Service-Integration Tests (24 Tests)
+├── Functional/             # HTTP-Level Tests (25 Tests)
+├── Controller/             # Controller-Schutztests (5 Tests)
+└── DataPrivacy/            # DSGVO Hard-Delete Tests (3 Tests)
+config/
+├── crontab                 # Crontab-Vorlage
+├── systemd/                # Systemd Timer + Service Units
+└── packages/               # Symfony-Konfiguration
 ```
 
 ## ✅ Vollständig implementierte Features
@@ -221,13 +280,39 @@ templates/
 - [x] **E-Mail-Benachrichtigungen**: Manuelles Benachrichtigungssystem
   - Email-Versand über Button "📧 E-Mails versenden" im Admin-Dashboard
   - Test-E-Mail-Funktion (Admin → E-Mail-Test)
-  - Kein automatischer Versand beim Generieren (bewusste Kontrolle)
+  - Automatische Erinnerungen via Cron (3 Tage Vorlauf)
 
 - [x] **PDF-Export**: Professioneller Kochplan-Export
   - Übersichtliche Monatsansicht
   - Alle Familien und Termine
   - Download-Link im Admin-Dashboard
   - Format: A4 Hochformat
+
+- [x] **Inkrementelle Planänderungen**: Familie nachträglich aufnehmen/entfernen
+  - "In Plan aufnehmen" transferiert Zuweisungen von überbelasteten Familien
+  - "Aus Plan entfernen" verteilt zukünftige Dienste an andere um
+  - Manuelle Zuweisungen bleiben bei Plangenerierung erhalten
+
+- [x] **Security Headers**: HTTP-Sicherheitsheader auf allen Responses
+  - Content-Security-Policy, X-Frame-Options, X-Content-Type-Options
+  - Referrer-Policy, Permissions-Policy
+  - HSTS nur in Produktion
+
+- [x] **Audit Logging**: Dedizierter Log-Channel für Admin-Aktionen
+  - Plan-Generierung/-Löschung, Zuweisungsänderungen
+  - KitaYear-Verwaltung, Login-Versuche
+
+- [x] **Cron Automation**: Automatisierte Hintergrundprozesse
+  - Erinnerungs-E-Mails (Mo-Fr 8:00)
+  - Feiertags-Generierung (jährlich 1. Juli)
+  - Jahresübergang LastYearCooking (jährlich 1. August)
+  - Siehe [CRON_SETUP.md](CRON_SETUP.md) für Setup-Anleitung
+
+- [x] **Umfassende Tests**: 101 Tests mit 2412 Assertions
+  - Unit Tests (Entities, Services)
+  - Integration Tests (Plan-Generierung, Fairness, Jahresübergang)
+  - Functional Tests (Security Headers, CSRF, Zugangskontrolle)
+  - DSGVO Hard-Delete-Verifikation
 
 ## 📈 Weitere mögliche Erweiterungen
 

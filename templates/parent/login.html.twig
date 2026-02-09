@@ -11,12 +11,14 @@
     </p>
 
     <form method="post">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token('parent_login') }}">
+        
         <div class="form-group">
             <label for="party_id">Familie auswählen:</label>
-            <select name="party_id" id="party_id" required onchange="showPassword(this.value)">
+            <select name="party_id" id="party_id" required>
                 <option value="">-- Bitte wählen --</option>
                 {% for party in parties %}
-                    <option value="{{ party.id }}" data-password="{{ party.generatedPassword }}">
+                    <option value="{{ party.id }}">
                         {{ party.childrenNames }} ({{ party.parentNames|join(', ') }})
                     </option>
                 {% endfor %}
@@ -27,13 +29,8 @@
             <label for="password">Passwort:</label>
             <input type="password" id="password" name="password" required placeholder="Erster Buchstabe + Geburtsjahr">
             <small style="color: #666;">
-                Beispiel: Kind "Max", geboren 2019 → Passwort: M2019
-            </small>
-        </div>
-
-        <div id="password-hint" style="background-color: #e3f2fd; padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; display: none;">
-            <small style="color: #1976d2;">
-                💡 Hinweis: Ihr Passwort ist <strong id="password-hint-text"></strong>
+                Format: Erster Buchstabe des ältesten Kindes (groß) + Geburtsjahr<br>
+                Beispiel: Kind "Max", geboren 2019 → <strong>M2019</strong>
             </small>
         </div>
 
@@ -48,20 +45,5 @@
     </div>
 </div>
 
-<script>
-function showPassword(partyId) {
-    const select = document.getElementById('party_id');
-    const selectedOption = select.options[select.selectedIndex];
-    const password = selectedOption.dataset.password;
-    const hint = document.getElementById('password-hint');
-    const hintText = document.getElementById('password-hint-text');
-    
-    if (password) {
-        hintText.textContent = password;
-        hint.style.display = 'block';
-    } else {
-        hint.style.display = 'none';
-    }
-}
-</script>
+
 {% endblock %}

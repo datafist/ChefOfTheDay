@@ -75,8 +75,23 @@
         </div>
     {% endif %}
     
-    <div style="margin-top: 1.5rem;">
+    <div style="margin-top: 1.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
         <a href="{{ path('admin_party_edit', {id: party.id}) }}" class="btn">Bearbeiten</a>
+        {% if activeYear and assignmentCount > 0 %}
+            <form method="post" action="{{ path('admin_remove_family_from_plan', {id: party.id}) }}" style="display: inline; margin: 0;" onsubmit="return confirm('⚠️ {{ party.childrenNames }} aus dem Plan entfernen? Zukünftige Dienste werden an andere Familien umverteilt.');">
+                <input type="hidden" name="_token" value="{{ csrf_token('remove-family-' ~ party.id) }}">
+                <button type="submit" class="btn" style="background-color: #dc3545; color: white;">
+                    ➖ Aus Plan entfernen
+                </button>
+            </form>
+        {% elseif activeYear and assignmentCount == 0 %}
+            <form method="post" action="{{ path('admin_add_family_to_plan', {id: party.id}) }}" style="display: inline; margin: 0;" onsubmit="return confirm('{{ party.childrenNames }} in den bestehenden Plan aufnehmen?');">
+                <input type="hidden" name="_token" value="{{ csrf_token('add-family-' ~ party.id) }}">
+                <button type="submit" class="btn" style="background-color: #28a745; color: white;">
+                    ➕ In Plan aufnehmen
+                </button>
+            </form>
+        {% endif %}
         <a href="{{ path('admin_party_index') }}" class="btn">Zurück zur Liste</a>
     </div>
 </div>
