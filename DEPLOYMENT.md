@@ -107,6 +107,16 @@ docker compose exec app php bin/console cache:clear --env=prod
 docker compose exec app php bin/console doctrine:migrations:migrate --no-interaction
 ```
 
+### Demo-Daten (Fixtures) in Produktion laden (optional)
+Nur fuer Test- oder Demo-Systeme nutzen. In Produktion ist das Bundle standardmaessig
+deaktiviert und wird nur mit `APP_ALLOW_FIXTURES=1` aktiviert.
+
+```bash
+docker compose exec -e APP_ALLOW_FIXTURES=1 app php bin/console doctrine:fixtures:load --no-interaction --env=prod
+```
+
+Danach `APP_ALLOW_FIXTURES` wieder entfernen.
+
 ### In Container einloggen
 ```bash
 docker compose exec app sh

@@ -120,6 +120,13 @@ docker compose up -d
 docker compose exec app php bin/console app:setup-admin
 ```
 
+Optional: Demo-Daten in Produktion (nur wenn wirklich benoetigt):
+```bash
+docker compose exec -e APP_ALLOW_FIXTURES=1 app php bin/console doctrine:fixtures:load --no-interaction --env=prod
+```
+
+Hinweis: `APP_ALLOW_FIXTURES=1` aktiviert das Fixtures-Bundle nur fuer den Aufruf.
+
 ---
 
 ## 📚 Datenmodell
