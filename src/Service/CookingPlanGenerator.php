@@ -392,6 +392,7 @@ class CookingPlanGenerator
             
             // Wähle die beste Liste: Bevorzuge Target, fallback auf Minimum
             $eligibleParties = !empty($eligiblePartiesTarget) ? $eligiblePartiesTarget : $eligiblePartiesMinimum;
+            $isEmergency = false;
 
             // Notfall-Fallback: JEDE verfügbare Familie (Abstände ignorieren)
             if (empty($eligibleParties)) {
@@ -406,6 +407,7 @@ class CookingPlanGenerator
                     }
                 }
                 if (!empty($eligibleParties)) {
+                    $isEmergency = true;
                     $conflicts[] = "Notfall-Zuweisung am " . $date->format('d.m.Y') . ": Abstände können nicht eingehalten werden.";
                 }
             }
@@ -419,6 +421,7 @@ class CookingPlanGenerator
                     }
                 }
                 if (!empty($eligibleParties)) {
+                    $isEmergency = true;
                     $conflicts[] = "Notfall-Zuweisung am " . $date->format('d.m.Y') . ": Alleinerziehenden-Limit überschritten.";
                 }
             }
@@ -524,6 +527,7 @@ class CookingPlanGenerator
             $assignment->setKitaYear($kitaYear);
             $assignment->setAssignedDate($date);
             $assignment->setIsManuallyAssigned(false);
+            $assignment->setIsEmergencyAssignment($isEmergency);
 
             $assignments[] = $assignment;
             $assignedCount[$partyId]++;

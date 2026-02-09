@@ -32,6 +32,9 @@ class CookingAssignment
     #[ORM\Column(type: Types::BOOLEAN)]
     private bool $isManuallyAssigned = false;
 
+    #[ORM\Column(type: Types::BOOLEAN)]
+    private bool $isEmergencyAssignment = false;
+
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -86,6 +89,17 @@ class CookingAssignment
     public function setIsManuallyAssigned(bool $isManuallyAssigned): static
     {
         $this->isManuallyAssigned = $isManuallyAssigned;
+        return $this;
+    }
+
+    public function isEmergencyAssignment(): bool
+    {
+        return $this->isEmergencyAssignment;
+    }
+
+    public function setIsEmergencyAssignment(bool $isEmergencyAssignment): static
+    {
+        $this->isEmergencyAssignment = $isEmergencyAssignment;
         return $this;
     }
 

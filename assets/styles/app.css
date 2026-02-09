@@ -1000,6 +1000,23 @@ tbody tr.table-today-row td {
     font-family: var(--font-mono);
 }
 
+.calendar-day-assigned {
+    background-color: #fff3e0;
+    border-color: #ff9800 !important;
+    box-shadow: inset 0 0 0 2px #ff9800;
+}
+
+.calendar-day-assigned .day-number {
+    color: #e65100;
+}
+
+.day-assigned-badge {
+    font-size: 1.2rem;
+    text-align: center;
+    margin-top: 2px;
+    line-height: 1;
+}
+
 .calendar-day-cell {
     background-color: var(--color-bg);
     padding: var(--spacing-sm);
@@ -1053,6 +1070,12 @@ tbody tr.table-today-row td {
     margin-top: var(--spacing-xs);
     font-family: var(--font-mono);
     text-transform: uppercase;
+}
+
+.calendar-badge-emergency {
+    background-color: var(--color-danger, #dc3545);
+    color: #fff;
+    border-color: var(--color-danger, #dc3545);
 }
 
 input[type="checkbox"].checkbox-success {

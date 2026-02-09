@@ -56,6 +56,10 @@
                                                     <span class="calendar-assignment-badge">✏️ Manuell</span>
                                                 {% endif %}
                                                 
+                                                {% if day.assignment.isEmergencyAssignment %}
+                                                    <span class="calendar-assignment-badge calendar-badge-emergency">⚠️ Notfall</span>
+                                                {% endif %}
+                                                
                                                 <div class="calendar-assignment-actions">
                                                     <button 
                                                         onclick="editAssignment({{ day.assignment.id }}, '{{ day.date }}', '{{ day.assignment.party.childrenNames }}', {{ day.assignment.party.id }}, '{{ csrf_token('edit-assignment-' ~ day.assignment.id) }}')"

@@ -107,7 +107,7 @@
                                             </div>
                                         </div>
                                     {% else %}
-                                        <label class="calendar-day-label">
+                                        <label class="calendar-day-label {% if day.date in assignedDateStrings %}calendar-day-assigned{% endif %}">
                                             <input type="checkbox" 
                                                    class="checkbox-success day-checkbox"
                                                    value="{{ day.date }}"
@@ -115,6 +115,9 @@
                                                    {% if day.date in savedDates %}checked{% endif %}
                                                    {% if planGenerated %}disabled{% endif %}>
                                             <div class="day-number">{{ day.day }}</div>
+                                            {% if day.date in assignedDateStrings %}
+                                                <div class="day-assigned-badge">🍳</div>
+                                            {% endif %}
                                         </label>
                                     {% endif %}
                                 {% endfor %}

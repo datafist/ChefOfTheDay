@@ -114,6 +114,7 @@ class ParentController extends AbstractController
                 'party' => $party,
                 'activeYear' => null,
                 'assignmentCount' => 0,
+                'assignedDateStrings' => [],
             ]);
         }
 
@@ -200,6 +201,12 @@ class ParentController extends AbstractController
         // Erstelle Kalender
         $calendar = $this->buildCalendar($activeYear, $dateExclusionService);
 
+        // Einfaches Array mit Y-m-d Strings für Kalender-Markierung
+        $assignedDateStrings = array_map(
+            fn($a) => $a['date']->format('Y-m-d'),
+            $assignedDates
+        );
+
         return $this->render('parent/availability.html.twig', [
             'party' => $party,
             'activeYear' => $activeYear,
@@ -208,6 +215,7 @@ class ParentController extends AbstractController
             'assignmentCount' => $assignmentCount,
             'planGenerated' => $planGenerated,
             'assignedDates' => $assignedDates,
+            'assignedDateStrings' => $assignedDateStrings,
         ]);
     }
 
