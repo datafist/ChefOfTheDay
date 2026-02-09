@@ -62,7 +62,11 @@ docker compose logs -f
 
 ## Schritt 4: Initiale Einrichtung
 
-Nach dem ersten Start werden die Migrationen automatisch ausgeführt.
+Nach dem ersten Start muessen die Migrationen explizit ausgefuehrt werden.
+
+```bash
+docker compose exec app php bin/console doctrine:migrations:migrate --no-interaction
+```
 
 ### Admin-Benutzer erstellen
 
@@ -159,6 +163,16 @@ docker compose exec database mysqladmin ping -h localhost -u root -p
 
 # Netzwerk-Verbindung testen
 docker compose exec app ping database
+```
+
+### Oops! / 500 nach Login
+
+Falls nach Admin- oder Eltern-Login ein 500 Fehler auftritt, fehlen meist Migrationen
+in der Datenbank. Fuehre die Migrationen aus und leere danach den Cache:
+
+```bash
+docker compose exec app php bin/console doctrine:migrations:migrate --no-interaction
+docker compose exec app php bin/console cache:clear --env=prod
 ```
 
 ### SSL/Traefik Probleme
