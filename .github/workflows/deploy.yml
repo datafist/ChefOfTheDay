@@ -23,8 +23,10 @@ jobs:
           timeout: 300s
           command_timeout: 20m
           script: |
+            set -e
             cd /opt/ChefOfTheDay
             git pull origin main
+            docker compose build --pull
             docker compose down
-            docker compose up -d --build
+            docker compose up -d
             docker image prune -f
