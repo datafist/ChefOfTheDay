@@ -27,12 +27,15 @@ RUN { \
     } > /usr/local/etc/php/conf.d/opcache.ini
 
 # PHP Production Konfiguration
+# Härtung gegen php2shell (CVE-2026-109618 / CVE-2026-109619):
+# session.upload_progress wird nicht genutzt und bleibt dauerhaft deaktiviert.
 RUN { \
     echo 'memory_limit=256M'; \
     echo 'upload_max_filesize=10M'; \
     echo 'post_max_size=10M'; \
     echo 'max_execution_time=60'; \
     echo 'expose_php=Off'; \
+    echo 'session.upload_progress.enabled=Off'; \
     } > /usr/local/etc/php/conf.d/production.ini
 
 # Composer installieren
